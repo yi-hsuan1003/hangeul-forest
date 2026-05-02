@@ -1759,8 +1759,11 @@ async function handlePdfFile(file) {
       start: i * 10, end: (i + 1) * 10, text: s.trim()
     }));
 
+    const { data: { session: freshSession2 } } = await _supa.auth.getSession();
+    if (!freshSession2) throw new Error('登入狀態已過期，請重新登入');
+
     const { error: dbError } = await _supa.from('transcripts').insert({
-      user_id: currentUser.id,
+      user_id: freshSession2.user.id,
       title: file.name.replace('.pdf', ''),
       file_url: fileUrl,
       file_type: 'pdf',
@@ -1813,8 +1816,11 @@ async function handleYoutube() {
     const thumbUrl = `https://img.youtube.com/vi/${videoId}/0.jpg`;
     const duration = Math.round(data.segments[data.segments.length - 1]?.end || 0);
 
+    const { data: { session: ytSession } } = await _supa.auth.getSession();
+    if (!ytSession) throw new Error('登入狀態已過期，請重新登入');
+
     const { error: dbError } = await _supa.from('transcripts').insert({
-      user_id: currentUser.id,
+      user_id: ytSession.user.id,
       title: `YouTube: ${videoId}`,
       file_url: url,
       file_type: 'youtube',
@@ -1908,9 +1914,14 @@ async function handleAudioFile(file) {
     const transcriptData = await transcribeRes.json();
     const duration = Math.round(transcriptData.segments?.reduce((a, s) => Math.max(a, s.end || 0), 0) || 0);
 
-    // 4. 存入資料庫
+    // 4. 重新取得最新 session 確保 user_id 正確
+    const { data: { session: freshSession } } = await _supa.auth.getSession();
+    if (!freshSession) throw new Error('登入狀態已過期，請重新登入');
+    const uid = freshSession.user.id;
+
+    // 5. 存入資料庫
     const { error: dbError } = await _supa.from('transcripts').insert({
-      user_id: currentUser.id,
+      user_id: uid,
       title: file.name.replace(/\.[^/.]+$/, ''),
       file_url: fileUrl,
       file_type: file.type.startsWith('video') ? 'video' : 'audio',
