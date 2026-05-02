@@ -1,0 +1,1459 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>한글숲 · 韓文學習工作站</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;600&family=Noto+Sans+KR:wght@300;400;500;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cream: #F5F0E8;
+  --warm-white: #FAF7F2;
+  --parchment: #EDE6D6;
+  --ink: #2C2416;
+  --ink-soft: #4A3F30;
+  --ink-muted: #8A7D6A;
+  --ink-faint: #C5B9A8;
+  --accent-red: #C0392B;
+  --accent-red-soft: #E8D5D0;
+  --accent-gold: #B8960C;
+  --accent-gold-soft: #F0E8C0;
+  --accent-teal: #1A6B5A;
+  --accent-teal-soft: #D0E8E2;
+  --accent-purple: #5B3FA0;
+  --accent-purple-soft: #E0D8F0;
+  --border: #D8CFBE;
+  --border-soft: #EDE6D6;
+  --shadow: rgba(44,36,22,0.08);
+  --paper-texture: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Noto Sans KR', sans-serif;
+  background: var(--cream);
+  color: var(--ink);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── LAYOUT ── */
+.app { display: flex; min-height: 100vh; }
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: var(--ink);
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  z-index: 100;
+}
+
+.sidebar-logo {
+  padding: 28px 24px 24px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.sidebar-logo .ko {
+  font-family: 'Noto Serif KR', serif;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--cream);
+  letter-spacing: 0.05em;
+  display: block;
+}
+.sidebar-logo .zh {
+  font-family: 'DM Serif Display', serif;
+  font-size: 11px;
+  color: var(--ink-faint);
+  letter-spacing: 0.12em;
+  margin-top: 2px;
+  display: block;
+}
+
+.sidebar-nav { flex: 1; padding: 16px 0; }
+.nav-group-label {
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  padding: 12px 24px 6px;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 24px;
+  color: rgba(245,240,232,0.55);
+  font-size: 13px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: all 0.15s;
+  border-left: 2px solid transparent;
+  letter-spacing: 0.01em;
+}
+.nav-item:hover { color: var(--cream); background: rgba(255,255,255,0.04); }
+.nav-item.active {
+  color: var(--cream);
+  border-left-color: var(--accent-gold);
+  background: rgba(184,150,12,0.1);
+}
+.nav-item .icon { width: 16px; text-align: center; font-size: 14px; flex-shrink: 0; }
+
+.sidebar-bottom {
+  padding: 16px 24px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+.user-tag {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.user-avatar {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: var(--accent-gold);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 500; color: var(--ink);
+  flex-shrink: 0;
+}
+.user-info .name { font-size: 12px; color: var(--cream); font-weight: 500; }
+.user-info .level { font-size: 10px; color: var(--ink-muted); margin-top: 1px; }
+
+/* ── MAIN ── */
+.main {
+  margin-left: 220px;
+  flex: 1;
+  min-height: 100vh;
+  background: var(--warm-white);
+  background-image: var(--paper-texture);
+}
+
+/* ── TOP BAR ── */
+.topbar {
+  height: 60px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 36px;
+  background: var(--warm-white);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+.topbar-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 18px;
+  color: var(--ink);
+}
+.topbar-right { display: flex; align-items: center; gap: 16px; }
+.streak-badge {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--accent-gold-soft);
+  border: 1px solid rgba(184,150,12,0.25);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 12px;
+  color: var(--accent-gold);
+  font-weight: 500;
+}
+
+/* ── PAGE SECTIONS ── */
+.page { display: none; }
+.page.active { display: block; }
+
+/* ── DASHBOARD ── */
+.dashboard { padding: 36px; }
+
+.section-heading {
+  font-family: 'Playfair Display', serif;
+  font-size: 13px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-bottom: 16px;
+}
+
+/* Stats row */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 36px;
+}
+.stat-card {
+  background: var(--cream);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 22px;
+  position: relative;
+  overflow: hidden;
+}
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+}
+.stat-card.red::before { background: var(--accent-red); }
+.stat-card.gold::before { background: var(--accent-gold); }
+.stat-card.teal::before { background: var(--accent-teal); }
+.stat-card.purple::before { background: var(--accent-purple); }
+.stat-label { font-size: 11px; color: var(--ink-muted); letter-spacing: 0.05em; margin-bottom: 6px; }
+.stat-value { font-family: 'DM Serif Display', serif; font-size: 36px; color: var(--ink); line-height: 1; }
+.stat-sub { font-size: 11px; color: var(--ink-muted); margin-top: 4px; }
+
+/* Today's review */
+.review-section { margin-bottom: 36px; }
+.review-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px;
+}
+.btn-primary {
+  background: var(--ink);
+  color: var(--cream);
+  border: none;
+  border-radius: 8px;
+  padding: 9px 20px;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+  letter-spacing: 0.02em;
+}
+.btn-primary:hover { background: var(--ink-soft); transform: translateY(-1px); }
+.btn-outline {
+  background: transparent;
+  color: var(--ink-soft);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-outline:hover { border-color: var(--ink-soft); background: var(--cream); }
+
+/* SRS Cards preview */
+.srs-preview {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.srs-card {
+  background: var(--cream);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.srs-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px var(--shadow);
+  border-color: var(--ink-faint);
+}
+.srs-word {
+  font-family: 'Noto Serif KR', serif;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 4px;
+  letter-spacing: 0.03em;
+}
+.srs-reading { font-size: 11px; color: var(--ink-muted); margin-bottom: 8px; font-family: 'IBM Plex Mono', monospace; }
+.srs-meaning { font-size: 13px; color: var(--ink-soft); }
+.srs-meta {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-soft);
+}
+.srs-source { font-size: 10px; color: var(--ink-muted); }
+.srs-badge {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+.badge-new { background: var(--accent-red-soft); color: var(--accent-red); }
+.badge-review { background: var(--accent-gold-soft); color: var(--accent-gold); }
+.badge-mastered { background: var(--accent-teal-soft); color: var(--accent-teal); }
+
+/* Progress bars */
+.progress-section { margin-bottom: 36px; }
+.progress-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.progress-card {
+  background: var(--cream);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 22px;
+}
+.progress-card-title { font-size: 13px; font-weight: 500; color: var(--ink); margin-bottom: 14px; }
+.progress-item { margin-bottom: 12px; }
+.progress-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+.progress-label { font-size: 12px; color: var(--ink-soft); }
+.progress-pct { font-size: 12px; color: var(--ink-muted); font-family: 'IBM Plex Mono', monospace; }
+.progress-bar-bg {
+  height: 5px;
+  background: var(--parchment);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 1s ease;
+}
+.fill-red { background: var(--accent-red); }
+.fill-gold { background: var(--accent-gold); }
+.fill-teal { background: var(--accent-teal); }
+.fill-purple { background: var(--accent-purple); }
+
+/* ── VOCAB PAGE ── */
+.vocab-page { padding: 36px; }
+.vocab-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.search-box {
+  flex: 1;
+  background: var(--cream);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 14px;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 13px;
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.15s;
+}
+.search-box:focus { border-color: var(--ink-soft); }
+.search-box::placeholder { color: var(--ink-faint); }
+
+.filter-chip {
+  padding: 7px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: transparent;
+  font-size: 12px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: 'Noto Sans KR', sans-serif;
+}
+.filter-chip.active {
+  background: var(--ink);
+  color: var(--cream);
+  border-color: var(--ink);
+}
+.filter-chip:hover:not(.active) { border-color: var(--ink-soft); }
+
+.vocab-table {
+  background: var(--cream);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.vocab-table-header {
+  display: grid;
+  grid-template-columns: 180px 120px 1fr 100px 100px 80px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--parchment);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.vocab-row {
+  display: grid;
+  grid-template-columns: 180px 120px 1fr 100px 100px 80px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border-soft);
+  align-items: center;
+  transition: background 0.1s;
+  cursor: pointer;
+}
+.vocab-row:hover { background: var(--warm-white); }
+.vocab-row:last-child { border-bottom: none; }
+.v-word { font-family: 'Noto Serif KR', serif; font-size: 18px; font-weight: 600; color: var(--ink); }
+.v-roman { font-size: 12px; color: var(--ink-muted); font-family: 'IBM Plex Mono', monospace; }
+.v-meaning { font-size: 13px; color: var(--ink-soft); }
+.v-source { font-size: 11px; color: var(--ink-muted); }
+.v-next { font-size: 11px; color: var(--ink-muted); font-family: 'IBM Plex Mono', monospace; }
+.level-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 4px;
+}
+
+/* ── READER PAGE ── */
+.reader-page { display: flex; height: calc(100vh - 60px); }
+.reader-sidebar {
+  width: 280px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  background: var(--cream);
+  overflow-y: auto;
+  padding: 24px;
+}
+.resource-list-item {
+  padding: 12px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-bottom: 6px;
+  border: 1px solid transparent;
+}
+.resource-list-item:hover { background: var(--warm-white); border-color: var(--border); }
+.resource-list-item.active { background: var(--ink); color: var(--cream); }
+.resource-list-item.active .res-title { color: var(--cream); }
+.resource-list-item.active .res-meta { color: rgba(245,240,232,0.55); }
+.res-title { font-size: 13px; font-weight: 500; color: var(--ink); margin-bottom: 3px; }
+.res-meta { font-size: 11px; color: var(--ink-muted); }
+.res-icon { font-size: 16px; margin-bottom: 6px; }
+
+.reader-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.audio-player {
+  padding: 16px 32px;
+  border-bottom: 1px solid var(--border);
+  background: var(--warm-white);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.play-btn {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: var(--ink);
+  border: none;
+  color: var(--cream);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.play-btn:hover { background: var(--ink-soft); transform: scale(1.05); }
+.waveform-container {
+  flex: 1;
+  height: 40px;
+  background: var(--parchment);
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+  cursor: pointer;
+}
+.waveform-bars {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  gap: 2px;
+  padding: 0 8px;
+}
+.waveform-bar {
+  flex: 1;
+  background: var(--ink-faint);
+  border-radius: 1px;
+  transition: background 0.1s;
+}
+.waveform-bar.played { background: var(--accent-teal); }
+.time-display {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+
+.transcript-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 32px;
+}
+.transcript-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 22px;
+  color: var(--ink);
+  margin-bottom: 24px;
+  line-height: 1.4;
+}
+.transcript-segment {
+  margin-bottom: 20px;
+  padding: 16px 18px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.transcript-segment:hover { background: var(--cream); border-color: var(--border); }
+.transcript-segment.active {
+  background: var(--accent-teal-soft);
+  border-color: rgba(26,107,90,0.2);
+}
+.seg-time {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: var(--ink-muted);
+  margin-bottom: 6px;
+  letter-spacing: 0.05em;
+}
+.seg-ko {
+  font-family: 'Noto Serif KR', serif;
+  font-size: 20px;
+  line-height: 1.8;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+.seg-zh { font-size: 13px; color: var(--ink-muted); line-height: 1.6; }
+
+/* Clickable word */
+.word-tag {
+  display: inline;
+  cursor: pointer;
+  border-bottom: 1.5px dotted var(--ink-faint);
+  transition: all 0.15s;
+  position: relative;
+}
+.word-tag:hover {
+  border-bottom-color: var(--accent-teal);
+  color: var(--accent-teal);
+}
+.word-tag.grammar {
+  border-bottom-color: rgba(184,150,12,0.5);
+  background: rgba(184,150,12,0.06);
+  padding: 0 2px;
+  border-radius: 2px;
+}
+.word-tag.grammar:hover { color: var(--accent-gold); border-bottom-color: var(--accent-gold); }
+
+/* Word popup */
+.word-popup {
+  position: fixed;
+  background: var(--ink);
+  color: var(--cream);
+  border-radius: 10px;
+  padding: 14px 18px;
+  font-size: 13px;
+  z-index: 1000;
+  min-width: 200px;
+  max-width: 280px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  display: none;
+  animation: popIn 0.15s ease;
+  pointer-events: none;
+}
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.95) translateY(4px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.popup-word { font-family: 'Noto Serif KR', serif; font-size: 22px; font-weight: 600; margin-bottom: 4px; }
+.popup-roman { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: rgba(245,240,232,0.6); margin-bottom: 8px; }
+.popup-pos { display: inline-block; font-size: 10px; padding: 2px 7px; border-radius: 4px; background: rgba(255,255,255,0.1); color: rgba(245,240,232,0.7); margin-bottom: 8px; }
+.popup-meaning { font-size: 13px; color: rgba(245,240,232,0.9); line-height: 1.5; margin-bottom: 10px; }
+.popup-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--accent-gold);
+  color: var(--ink);
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  pointer-events: all;
+  font-family: 'Noto Sans KR', sans-serif;
+  transition: opacity 0.15s;
+}
+.popup-add-btn:hover { opacity: 0.85; }
+.popup-add-btn.added { background: var(--accent-teal); color: var(--cream); }
+
+/* ── QUIZ PAGE ── */
+.quiz-page { padding: 36px; }
+.quiz-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 36px; }
+.quiz-type-card {
+  background: var(--cream);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 24px;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+.quiz-type-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.quiz-type-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px var(--shadow); }
+.quiz-type-card:hover::after { opacity: 1; }
+.quiz-type-card.red-card { border-top: 3px solid var(--accent-red); }
+.quiz-type-card.gold-card { border-top: 3px solid var(--accent-gold); }
+.quiz-type-card.purple-card { border-top: 3px solid var(--accent-purple); }
+.qt-icon { font-size: 28px; margin-bottom: 12px; }
+.qt-title { font-family: 'DM Serif Display', serif; font-size: 18px; color: var(--ink); margin-bottom: 6px; }
+.qt-desc { font-size: 12px; color: var(--ink-muted); line-height: 1.6; margin-bottom: 14px; }
+.qt-count { font-size: 11px; color: var(--ink-muted); font-family: 'IBM Plex Mono', monospace; }
+
+/* Quiz play area */
+.quiz-play { display: none; }
+.quiz-play.active { display: block; }
+.quiz-play-inner {
+  max-width: 640px;
+  margin: 0 auto;
+}
+.quiz-progress-bar {
+  height: 4px;
+  background: var(--parchment);
+  border-radius: 2px;
+  margin-bottom: 32px;
+  overflow: hidden;
+}
+.quiz-progress-fill {
+  height: 100%;
+  background: var(--accent-teal);
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+.quiz-card {
+  background: var(--cream);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 40px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+.quiz-q-label { font-size: 11px; color: var(--ink-muted); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 12px; }
+.quiz-question {
+  font-family: 'Noto Serif KR', serif;
+  font-size: 36px;
+  color: var(--ink);
+  margin-bottom: 8px;
+  line-height: 1.3;
+}
+.quiz-hint { font-size: 13px; color: var(--ink-muted); margin-bottom: 28px; font-style: italic; }
+.quiz-options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.quiz-option {
+  padding: 14px 18px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  background: var(--warm-white);
+  cursor: pointer;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 14px;
+  color: var(--ink);
+  transition: all 0.15s;
+  text-align: left;
+}
+.quiz-option:hover { border-color: var(--ink-soft); background: var(--cream); }
+.quiz-option.correct { border-color: var(--accent-teal); background: var(--accent-teal-soft); color: var(--accent-teal); }
+.quiz-option.wrong { border-color: var(--accent-red); background: var(--accent-red-soft); color: var(--accent-red); }
+
+/* ── WRONG ANALYSIS ── */
+.analysis-section { margin-top: 36px; }
+.analysis-card {
+  background: var(--cream);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 16px;
+}
+.analysis-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.analysis-title { font-size: 14px; font-weight: 500; color: var(--ink); }
+.mini-bar-chart { display: flex; flex-direction: column; gap: 10px; }
+.mini-bar-row { display: flex; align-items: center; gap: 10px; }
+.mini-bar-label { width: 120px; font-size: 12px; color: var(--ink-soft); text-align: right; flex-shrink: 0; }
+.mini-bar-bg { flex: 1; height: 8px; background: var(--parchment); border-radius: 4px; overflow: hidden; }
+.mini-bar-fill { height: 100%; border-radius: 4px; }
+.mini-bar-val { width: 30px; font-size: 11px; color: var(--ink-muted); font-family: 'IBM Plex Mono', monospace; }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--ink);
+  color: var(--cream);
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-size: 13px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+  transform: translateY(80px);
+  opacity: 0;
+  transition: all 0.3s ease;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* Responsive: hide sidebar details on smaller screens */
+@media (max-width: 900px) {
+  .stats-row { grid-template-columns: repeat(2,1fr); }
+  .srs-preview { grid-template-columns: repeat(2,1fr); }
+  .progress-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ── SIDEBAR ── -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <span class="ko">한글숲</span>
+    <span class="zh">HANGEUL FOREST · 韓文學習工作站</span>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-group-label">學習中心</div>
+    <div class="nav-item active" onclick="showPage('dashboard', this)">
+      <span class="icon">⊞</span> 學習儀表板
+    </div>
+    <div class="nav-item" onclick="showPage('reader', this)">
+      <span class="icon">◉</span> 閱讀器 / 逐字稿
+    </div>
+    <div class="nav-item" onclick="showPage('vocab', this)">
+      <span class="icon">◈</span> 我的單字庫
+    </div>
+    <div class="nav-item" onclick="showPage('quiz', this)">
+      <span class="icon">✦</span> 測驗 &amp; 分析
+    </div>
+    <div class="nav-group-label" style="margin-top:8px">資源管理</div>
+    <div class="nav-item" onclick="showPage('upload', this)">
+      <span class="icon">↑</span> 上傳教材
+    </div>
+    <div class="nav-item">
+      <span class="icon">⌘</span> 文法教練
+    </div>
+    <div class="nav-item">
+      <span class="icon">◌</span> 學習地圖
+    </div>
+  </nav>
+  <div class="sidebar-bottom">
+    <div class="user-tag">
+      <div class="user-avatar">我</div>
+      <div class="user-info">
+        <div class="name">學習者</div>
+        <div class="level">TOPIK 1 → 目標 2級</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- ── MAIN CONTENT ── -->
+<main class="main">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-title" id="page-title">學習儀表板</div>
+    <div class="topbar-right">
+      <div class="streak-badge">🔥 連續 12 天</div>
+      <button class="btn-primary" onclick="showPage('quiz')">開始今日複習</button>
+    </div>
+  </div>
+
+  <!-- ── DASHBOARD PAGE ── -->
+  <div id="page-dashboard" class="page active">
+    <div class="dashboard">
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat-card red">
+          <div class="stat-label">單字庫總量</div>
+          <div class="stat-value">284</div>
+          <div class="stat-sub">本週 +18 個新單字</div>
+        </div>
+        <div class="stat-card gold">
+          <div class="stat-label">今日待複習</div>
+          <div class="stat-value">23</div>
+          <div class="stat-sub">SRS 排程卡片</div>
+        </div>
+        <div class="stat-card teal">
+          <div class="stat-label">掌握率</div>
+          <div class="stat-value">68<span style="font-size:20px">%</span></div>
+          <div class="stat-sub">較上週 +4%</div>
+        </div>
+        <div class="stat-card purple">
+          <div class="stat-label">完成測驗</div>
+          <div class="stat-value">41</div>
+          <div class="stat-sub">總計 1,230 題</div>
+        </div>
+      </div>
+
+      <!-- Today's SRS -->
+      <div class="review-section">
+        <div class="review-header">
+          <div class="section-heading">今日 SRS 複習佇列</div>
+          <button class="btn-outline">查看全部 23 張</button>
+        </div>
+        <div class="srs-preview">
+          <div class="srs-card" onclick="flipCard(this)">
+            <div class="srs-word">배우다</div>
+            <div class="srs-reading">bae-u-da</div>
+            <div class="srs-meaning" style="display:none">學習、學會（動詞）</div>
+            <div class="srs-meta">
+              <span class="srs-source">📻 TTMIK Ep.12</span>
+              <span class="srs-badge badge-review">複習中</span>
+            </div>
+          </div>
+          <div class="srs-card" onclick="flipCard(this)">
+            <div class="srs-word">그러나</div>
+            <div class="srs-reading">geu-reo-na</div>
+            <div class="srs-meaning" style="display:none">但是、然而（連接詞）</div>
+            <div class="srs-meta">
+              <span class="srs-source">📖 延世韓文 1</span>
+              <span class="srs-badge badge-new">新單字</span>
+            </div>
+          </div>
+          <div class="srs-card" onclick="flipCard(this)">
+            <div class="srs-word">맛있다</div>
+            <div class="srs-reading">ma-sit-da</div>
+            <div class="srs-meaning" style="display:none">好吃、美味（形容詞）</div>
+            <div class="srs-meta">
+              <span class="srs-source">🎬 韓劇片段</span>
+              <span class="srs-badge badge-mastered">已掌握</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Progress -->
+      <div class="progress-section">
+        <div class="section-heading">TOPIK 2級 備考進度</div>
+        <div class="progress-grid">
+          <div class="progress-card">
+            <div class="progress-card-title">📚 詞彙掌握</div>
+            <div class="progress-item">
+              <div class="progress-row">
+                <span class="progress-label">生活詞彙</span>
+                <span class="progress-pct">72%</span>
+              </div>
+              <div class="progress-bar-bg"><div class="progress-bar-fill fill-teal" style="width:72%"></div></div>
+            </div>
+            <div class="progress-item">
+              <div class="progress-row">
+                <span class="progress-label">社交詞彙</span>
+                <span class="progress-pct">58%</span>
+              </div>
+              <div class="progress-bar-bg"><div class="progress-bar-fill fill-gold" style="width:58%"></div></div>
+            </div>
+            <div class="progress-item">
+              <div class="progress-row">
+                <span class="progress-label">學術詞彙</span>
+                <span class="progress-pct">31%</span>
+              </div>
+              <div class="progress-bar-bg"><div class="progress-bar-fill fill-purple" style="width:31%"></div></div>
+            </div>
+            <div class="progress-item">
+              <div class="progress-row">
+                <span class="progress-label">情緒詞彙</span>
+                <span class="progress-pct">45%</span>
+              </div>
+              <div class="progress-bar-bg"><div class="progress-bar-fill fill-red" style="width:45%"></div></div>
+            </div>
+          </div>
+          <div class="progress-card">
+            <div class="progress-card-title">✦ 文法點掌握</div>
+            <div class="progress-item">
+              <div class="progress-row">
+                <span class="progress-label">-(으)면</span>
+                <span class="progress-pct">88%</span>
+              </div>
+              <div class="progress-bar-bg"><div class="progress-bar-fill fill-teal" style="width:88%"></div></div>
+            </div>
+            <div class="progress-item">
+              <div class="progress-row">
+                <span class="progress-label">-아/어서</span>
+                <span class="progress-pct">76%</span>
+              </div>
+              <div class="progress-bar-bg"><div class="progress-bar-fill fill-teal" style="width:76%"></div></div>
+            </div>
+            <div class="progress-item">
+              <div class="progress-row">
+                <span class="progress-label">-(으)ㄹ 것이다</span>
+                <span class="progress-pct">52%</span>
+              </div>
+              <div class="progress-bar-bg"><div class="progress-bar-fill fill-gold" style="width:52%"></div></div>
+            </div>
+            <div class="progress-item">
+              <div class="progress-row">
+                <span class="progress-label">-더라고요</span>
+                <span class="progress-pct">20%</span>
+              </div>
+              <div class="progress-bar-bg"><div class="progress-bar-fill fill-red" style="width:20%"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── READER PAGE ── -->
+  <div id="page-reader" class="page">
+    <div class="reader-page">
+      <!-- Left: resource list -->
+      <div class="reader-sidebar">
+        <div class="section-heading" style="margin-bottom:12px">我的教材</div>
+        <div class="resource-list-item active">
+          <div class="res-icon">📻</div>
+          <div class="res-title">TTMIK Level 2 – Ep.12</div>
+          <div class="res-meta">Podcast · 8:34 · 已轉錄</div>
+        </div>
+        <div class="resource-list-item">
+          <div class="res-icon">📖</div>
+          <div class="res-title">延世韓文 1 – 第5課</div>
+          <div class="res-meta">PDF · 3頁 · 已解析</div>
+        </div>
+        <div class="resource-list-item">
+          <div class="res-icon">🎬</div>
+          <div class="res-title">韓劇《我的解放日誌》片段</div>
+          <div class="res-meta">影片 · 2:18 · 已轉錄</div>
+        </div>
+        <div style="margin-top:16px; padding-top:16px; border-top:1px solid var(--border);">
+          <button class="btn-outline" style="width:100%; font-size:12px;" onclick="showPage('upload')">＋ 上傳新教材</button>
+        </div>
+      </div>
+
+      <!-- Right: reader + audio -->
+      <div class="reader-main">
+        <div class="audio-player">
+          <button class="play-btn" id="playBtn" onclick="togglePlay()">▶</button>
+          <div class="waveform-container" onclick="seekWaveform(event, this)" id="waveform">
+            <div class="waveform-bars" id="waveformBars"></div>
+          </div>
+          <div class="time-display" id="timeDisplay">01:24 / 08:34</div>
+        </div>
+        <div class="transcript-area">
+          <div class="transcript-title">Level 2 Lesson 12 – 이/가 되다 · 에서 / 에</div>
+
+          <div class="transcript-segment" id="seg0" onclick="activateSeg(0)">
+            <div class="seg-time">00:00 – 00:18</div>
+            <div class="seg-ko">
+              <span class="word-tag" data-word="안녕하세요" data-roman="an-nyeong-ha-se-yo" data-pos="感嘆詞" data-def="你好（敬語問候語）" onclick="showWordPopup(event,this)">안녕하세요</span>,
+              <span class="word-tag" data-word="오늘" data-roman="o-neul" data-pos="名詞" data-def="今天、今日" onclick="showWordPopup(event,this)">오늘</span>은
+              <span class="word-tag grammar" data-word="-(이)에서" data-roman="-(i)e-seo" data-pos="助詞（文法）" data-def="【文法】表示動作發生的場所。例：학교에서 공부해요 = 在學校學習" onclick="showWordPopup(event,this)">에서</span>
+              <span class="word-tag" data-word="배우다" data-roman="bae-u-da" data-pos="動詞" data-def="學習、學會" onclick="showWordPopup(event,this)">배울</span> 거예요.
+            </div>
+            <div class="seg-zh">今天，我們要學習「에서」的用法。</div>
+          </div>
+
+          <div class="transcript-segment" id="seg1" onclick="activateSeg(1)">
+            <div class="seg-time">00:19 – 00:45</div>
+            <div class="seg-ko">
+              <span class="word-tag" data-word="먼저" data-roman="meon-jeo" data-pos="副詞" data-def="首先、先" onclick="showWordPopup(event,this)">먼저</span>,
+              <span class="word-tag" data-word="학교" data-roman="hak-gyo" data-pos="名詞" data-def="學校" onclick="showWordPopup(event,this)">학교</span>
+              <span class="word-tag grammar" data-word="에서" data-roman="e-seo" data-pos="助詞" data-def="【문법】表示動作場所：在（某地方）做某事" onclick="showWordPopup(event,this)">에서</span>
+              <span class="word-tag" data-word="공부하다" data-roman="gong-bu-ha-da" data-pos="動詞" data-def="學習、唸書" onclick="showWordPopup(event,this)">공부해요</span>.
+              <span class="word-tag" data-word="그러나" data-roman="geu-reo-na" data-pos="連接詞" data-def="但是、然而" onclick="showWordPopup(event,this)">그러나</span>,
+              집
+              <span class="word-tag grammar" data-word="에" data-roman="e" data-pos="助詞（文法）" data-def="【文法】表示存在場所或目的地。與에서不同：에 = 存在的地方，에서 = 動作發生的地方" onclick="showWordPopup(event,this)">에</span>
+              있어요.
+            </div>
+            <div class="seg-zh">首先，「在學校學習」用 에서。但是「在家裡（存在）」用 에。</div>
+          </div>
+
+          <div class="transcript-segment active" id="seg2" onclick="activateSeg(2)">
+            <div class="seg-time">00:46 – 01:24 ▶ 播放中</div>
+            <div class="seg-ko">
+              <span class="word-tag" data-word="중요하다" data-roman="jung-yo-ha-da" data-pos="形容詞" data-def="重要的" onclick="showWordPopup(event,this)">중요한</span>
+              <span class="word-tag" data-word="차이" data-roman="cha-i" data-pos="名詞" data-def="差異、差別" onclick="showWordPopup(event,this)">차이</span>예요.
+              <span class="word-tag" data-word="에서" data-roman="e-seo" data-pos="助詞" data-def="表示動作發生場所" onclick="showWordPopup(event,this)">에서</span>는
+              <span class="word-tag" data-word="동작" data-roman="dong-jak" data-pos="名詞" data-def="動作、行為" onclick="showWordPopup(event,this)">동작</span>을
+              <span class="word-tag" data-word="나타내다" data-roman="na-ta-nae-da" data-pos="動詞" data-def="表示、表現" onclick="showWordPopup(event,this)">나타내요</span>.
+            </div>
+            <div class="seg-zh">這是很重要的差異。에서 表示動作的發生地點。</div>
+          </div>
+
+          <div class="transcript-segment" id="seg3" onclick="activateSeg(3)">
+            <div class="seg-time">01:25 – 02:10</div>
+            <div class="seg-ko">
+              <span class="word-tag" data-word="예를 들면" data-roman="ye-reul deul-myeon" data-pos="慣用語" data-def="例如、舉例來說" onclick="showWordPopup(event,this)">예를 들면</span>,
+              "<span class="word-tag" data-word="카페" data-roman="ka-pe" data-pos="名詞" data-def="咖啡廳（借詞自法語 café）" onclick="showWordPopup(event,this)">카페</span>
+              <span class="word-tag grammar" data-word="에서" data-roman="e-seo" data-pos="助詞" data-def="在咖啡廳（動作場所）" onclick="showWordPopup(event,this)">에서</span>
+              <span class="word-tag" data-word="커피를 마시다" data-roman="keo-pi-reul ma-si-da" data-pos="動詞片語" data-def="喝咖啡" onclick="showWordPopup(event,this)">커피를 마셔요</span>"
+              <span class="word-tag" data-word="맞다" data-roman="mat-da" data-pos="形容詞" data-def="正確的、對的" onclick="showWordPopup(event,this)">맞아요</span>.
+            </div>
+            <div class="seg-zh">例如，「在咖啡廳喝咖啡」→ 카페에서 커피를 마셔요。這樣用是正確的。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── VOCAB PAGE ── -->
+  <div id="page-vocab" class="page">
+    <div class="vocab-page">
+      <div class="vocab-toolbar">
+        <input class="search-box" type="text" placeholder="搜尋單字..." oninput="filterVocab(this.value)">
+        <button class="filter-chip active" onclick="setFilter(this,'all')">全部 (284)</button>
+        <button class="filter-chip" onclick="setFilter(this,'new')">新單字</button>
+        <button class="filter-chip" onclick="setFilter(this,'review')">複習中</button>
+        <button class="filter-chip" onclick="setFilter(this,'mastered')">已掌握</button>
+      </div>
+      <div class="vocab-table">
+        <div class="vocab-table-header">
+          <span>單字</span>
+          <span>羅馬拼音</span>
+          <span>意思</span>
+          <span>來源</span>
+          <span>下次複習</span>
+          <span>狀態</span>
+        </div>
+        <div id="vocabBody">
+          <div class="vocab-row">
+            <div><div class="v-word">배우다</div></div>
+            <div><div class="v-roman">bae-u-da</div></div>
+            <div><div class="v-meaning">學習、學會（動詞）</div></div>
+            <div><div class="v-source">📻 TTMIK Ep.12<br><span style="font-size:10px;color:var(--ink-faint)">01:24</span></div></div>
+            <div><div class="v-next">明天</div></div>
+            <div><span class="srs-badge badge-review">複習中</span></div>
+          </div>
+          <div class="vocab-row">
+            <div><div class="v-word">그러나</div></div>
+            <div><div class="v-roman">geu-reo-na</div></div>
+            <div><div class="v-meaning">但是、然而（連接詞）</div></div>
+            <div><div class="v-source">📖 延世韓文 1</div></div>
+            <div><div class="v-next">今天</div></div>
+            <div><span class="srs-badge badge-new">新單字</span></div>
+          </div>
+          <div class="vocab-row">
+            <div><div class="v-word">맛있다</div></div>
+            <div><div class="v-roman">ma-sit-da</div></div>
+            <div><div class="v-meaning">好吃、美味（形容詞）</div></div>
+            <div><div class="v-source">🎬 韓劇片段<br><span style="font-size:10px;color:var(--ink-faint)">00:45</span></div></div>
+            <div><div class="v-next">7天後</div></div>
+            <div><span class="srs-badge badge-mastered">已掌握</span></div>
+          </div>
+          <div class="vocab-row">
+            <div><div class="v-word">중요하다</div></div>
+            <div><div class="v-roman">jung-yo-ha-da</div></div>
+            <div><div class="v-meaning">重要的（形容詞）</div></div>
+            <div><div class="v-source">📻 TTMIK Ep.12<br><span style="font-size:10px;color:var(--ink-faint)">00:46</span></div></div>
+            <div><div class="v-next">3天後</div></div>
+            <div><span class="srs-badge badge-review">複習中</span></div>
+          </div>
+          <div class="vocab-row">
+            <div><div class="v-word">차이</div></div>
+            <div><div class="v-roman">cha-i</div></div>
+            <div><div class="v-meaning">差異、差別（名詞）</div></div>
+            <div><div class="v-source">📻 TTMIK Ep.12</div></div>
+            <div><div class="v-next">今天</div></div>
+            <div><span class="srs-badge badge-new">新單字</span></div>
+          </div>
+          <div class="vocab-row">
+            <div><div class="v-word">예를 들면</div></div>
+            <div><div class="v-roman">ye-reul deul-myeon</div></div>
+            <div><div class="v-meaning">例如、舉例來說（慣用語）</div></div>
+            <div><div class="v-source">📻 TTMIK Ep.12</div></div>
+            <div><div class="v-next">5天後</div></div>
+            <div><span class="srs-badge badge-review">複習中</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── QUIZ PAGE ── -->
+  <div id="page-quiz" class="page">
+    <div class="quiz-page">
+      <div id="quizMenu">
+        <div class="section-heading" style="margin-bottom:20px">選擇測驗類型</div>
+        <div class="quiz-grid">
+          <div class="quiz-type-card red-card" onclick="startQuiz()">
+            <div class="qt-icon">🃏</div>
+            <div class="qt-title">單字閃卡</div>
+            <div class="qt-desc">看韓文認中文，或看中文回想韓文。強化記憶連結。</div>
+            <div class="qt-count">待複習：23 張</div>
+          </div>
+          <div class="quiz-type-card gold-card" onclick="startQuiz()">
+            <div class="qt-icon">✍️</div>
+            <div class="qt-title">聽寫填充</div>
+            <div class="qt-desc">播放音頻後，拼寫出所聽到的韓文單字或句子。</div>
+            <div class="qt-count">連音練習：15 題</div>
+          </div>
+          <div class="quiz-type-card purple-card" onclick="startQuiz()">
+            <div class="qt-icon">🔀</div>
+            <div class="qt-title">句子重組</div>
+            <div class="qt-desc">將打散的詞彙重新排列成正確語序的韓文句子。</div>
+            <div class="qt-count">可練習：8 句</div>
+          </div>
+        </div>
+
+        <!-- Wrong analysis -->
+        <div class="analysis-section">
+          <div class="section-heading" style="margin-bottom:16px">弱點分析</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            <div class="analysis-card">
+              <div class="analysis-header">
+                <div class="analysis-title">錯誤率最高的文法點</div>
+              </div>
+              <div class="mini-bar-chart">
+                <div class="mini-bar-row">
+                  <div class="mini-bar-label">-더라고요</div>
+                  <div class="mini-bar-bg"><div class="mini-bar-fill fill-red" style="width:78%"></div></div>
+                  <div class="mini-bar-val">78%</div>
+                </div>
+                <div class="mini-bar-row">
+                  <div class="mini-bar-label">-(으)ㄹ 것이다</div>
+                  <div class="mini-bar-bg"><div class="mini-bar-fill fill-red" style="width:52%"></div></div>
+                  <div class="mini-bar-val">52%</div>
+                </div>
+                <div class="mini-bar-row">
+                  <div class="mini-bar-label">에 vs 에서</div>
+                  <div class="mini-bar-bg"><div class="mini-bar-fill fill-gold" style="width:35%"></div></div>
+                  <div class="mini-bar-val">35%</div>
+                </div>
+                <div class="mini-bar-row">
+                  <div class="mini-bar-label">-아/어서</div>
+                  <div class="mini-bar-bg"><div class="mini-bar-fill fill-gold" style="width:22%"></div></div>
+                  <div class="mini-bar-val">22%</div>
+                </div>
+                <div class="mini-bar-row">
+                  <div class="mini-bar-label">-(으)면</div>
+                  <div class="mini-bar-bg"><div class="mini-bar-fill fill-teal" style="width:10%"></div></div>
+                  <div class="mini-bar-val">10%</div>
+                </div>
+              </div>
+            </div>
+            <div class="analysis-card">
+              <div class="analysis-header">
+                <div class="analysis-title">常錯單字 Top 5</div>
+              </div>
+              <div class="mini-bar-chart">
+                <div class="mini-bar-row">
+                  <div class="mini-bar-label">나타내다</div>
+                  <div class="mini-bar-bg"><div class="mini-bar-fill fill-red" style="width:70%"></div></div>
+                  <div class="mini-bar-val">5次</div>
+                </div>
+                <div class="mini-bar-row">
+                  <div class="mini-bar-label">차이</div>
+                  <div class="mini-bar-bg"><div class="mini-bar-fill fill-red" style="width:56%"></div></div>
+                  <div class="mini-bar-val">4次</div>
+                </div>
+                <div class="mini-bar-row">
+                  <div class="mini-bar-label">중요하다</div>
+                  <div class="mini-bar-bg"><div class="mini-bar-fill fill-gold" style="width:42%"></div></div>
+                  <div class="mini-bar-val">3次</div>
+                </div>
+                <div class="mini-bar-row">
+                  <div class="mini-bar-label">동작</div>
+                  <div class="mini-bar-bg"><div class="mini-bar-fill fill-gold" style="width:28%"></div></div>
+                  <div class="mini-bar-val">2次</div>
+                </div>
+                <div class="mini-bar-row">
+                  <div class="mini-bar-label">그러나</div>
+                  <div class="mini-bar-bg"><div class="mini-bar-fill fill-teal" style="width:14%"></div></div>
+                  <div class="mini-bar-val">1次</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quiz play area -->
+      <div id="quizPlay" class="quiz-play">
+        <div class="quiz-play-inner">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+            <div style="font-size:13px;color:var(--ink-muted)">問題 <span id="qNum">1</span> / 5</div>
+            <button class="btn-outline" style="font-size:12px" onclick="endQuiz()">結束測驗</button>
+          </div>
+          <div class="quiz-progress-bar">
+            <div class="quiz-progress-fill" id="quizProgressFill" style="width:20%"></div>
+          </div>
+          <div class="quiz-card">
+            <div class="quiz-q-label">選出正確的意思</div>
+            <div class="quiz-question" id="quizQuestion">배우다</div>
+            <div class="quiz-hint" id="quizHint">bae-u-da · 動詞</div>
+            <div class="quiz-options" id="quizOptions"></div>
+          </div>
+          <div id="quizFeedback" style="display:none;text-align:center;margin-top:16px">
+            <div id="feedbackText" style="font-size:14px;margin-bottom:12px"></div>
+            <button class="btn-primary" onclick="nextQuestion()">下一題 →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── UPLOAD PAGE ── -->
+  <div id="page-upload" class="page">
+    <div class="dashboard">
+      <div class="section-heading" style="margin-bottom:24px">上傳教材</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:800px">
+        <div style="background:var(--cream);border:2px dashed var(--border);border-radius:14px;padding:32px 24px;text-align:center;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='var(--ink-soft)'" onmouseout="this.style.borderColor='var(--border)'" onclick="showToast('📖 PDF 上傳功能即將上線！')">
+          <div style="font-size:36px;margin-bottom:12px">📖</div>
+          <div style="font-family:'DM Serif Display',serif;font-size:16px;color:var(--ink);margin-bottom:6px">PDF 課本</div>
+          <div style="font-size:12px;color:var(--ink-muted)">自動解析文字<br>支援多頁課本</div>
+        </div>
+        <div style="background:var(--cream);border:2px dashed var(--border);border-radius:14px;padding:32px 24px;text-align:center;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='var(--ink-soft)'" onmouseout="this.style.borderColor='var(--border)'" onclick="showToast('🎬 影音上傳功能即將上線！')">
+          <div style="font-size:36px;margin-bottom:12px">🎬</div>
+          <div style="font-family:'DM Serif Display',serif;font-size:16px;color:var(--ink);margin-bottom:6px">影片 / 音頻</div>
+          <div style="font-size:12px;color:var(--ink-muted)">Whisper 自動轉錄<br>生成互動逐字稿</div>
+        </div>
+        <div style="background:var(--cream);border:2px dashed var(--border);border-radius:14px;padding:32px 24px;text-align:center;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='var(--ink-soft)'" onmouseout="this.style.borderColor='var(--border)'" onclick="showToast('🌐 Web Clipper 即將上線！')">
+          <div style="font-size:36px;margin-bottom:12px">🌐</div>
+          <div style="font-family:'DM Serif Display',serif;font-size:16px;color:var(--ink);margin-bottom:6px">網頁擷取</div>
+          <div style="font-size:12px;color:var(--ink-muted)">收集線上韓文文章<br>一鍵加入學習庫</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<!-- Word Popup -->
+<div class="word-popup" id="wordPopup">
+  <div class="popup-word" id="pWord"></div>
+  <div class="popup-roman" id="pRoman"></div>
+  <span class="popup-pos" id="pPos"></span>
+  <div class="popup-meaning" id="pMeaning"></div>
+  <button class="popup-add-btn" id="pAddBtn" onclick="addToVocab()">＋ 加入單字庫</button>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── PAGE NAVIGATION ──
+function showPage(name, navEl) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-'+name)?.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if(navEl) navEl.classList.add('active');
+  const titles = {
+    dashboard: '學習儀表板',
+    reader: '閱讀器 / 互動逐字稿',
+    vocab: '我的單字庫',
+    quiz: '測驗 & 錯題分析',
+    upload: '上傳教材'
+  };
+  document.getElementById('page-title').textContent = titles[name] || name;
+  if(name === 'quiz') { document.getElementById('quizMenu').style.display='block'; document.getElementById('quizPlay').classList.remove('active'); }
+}
+
+// ── WAVEFORM ──
+(function buildWaveform() {
+  const bars = document.getElementById('waveformBars');
+  const heights = [30,50,80,60,40,70,90,55,45,75,85,50,35,65,80,55,70,40,90,60,50,30,75,85,60,45,70,55,80,35,90,65];
+  heights.forEach((h,i) => {
+    const bar = document.createElement('div');
+    bar.className = 'waveform-bar' + (i < 10 ? ' played' : '');
+    bar.style.height = h + '%';
+    bar.id = 'bar'+i;
+    bars.appendChild(bar);
+  });
+})();
+
+let playing = false;
+let currentBar = 10;
+let playInterval = null;
+
+function togglePlay() {
+  playing = !playing;
+  document.getElementById('playBtn').textContent = playing ? '⏸' : '▶';
+  if(playing) {
+    playInterval = setInterval(() => {
+      if(currentBar < 32) {
+        document.getElementById('bar'+currentBar)?.classList.add('played');
+        currentBar++;
+        const mins = Math.floor(currentBar * 15 / 60).toString().padStart(2,'0');
+        const secs = (currentBar * 15 % 60).toString().padStart(2,'0');
+        document.getElementById('timeDisplay').textContent = `0${mins}:${secs} / 08:34`;
+      } else { clearInterval(playInterval); playing = false; document.getElementById('playBtn').textContent = '▶'; }
+    }, 300);
+  } else {
+    clearInterval(playInterval);
+  }
+}
+
+function seekWaveform(e, el) {
+  const rect = el.getBoundingClientRect();
+  const pct = (e.clientX - rect.left) / rect.width;
+  const target = Math.floor(pct * 32);
+  for(let i=0;i<32;i++) {
+    const b = document.getElementById('bar'+i);
+    if(b) b.classList.toggle('played', i < target);
+  }
+  currentBar = target;
+}
+
+// ── SEGMENTS ──
+function activateSeg(idx) {
+  document.querySelectorAll('.transcript-segment').forEach((s,i) => {
+    s.classList.toggle('active', i === idx);
+  });
+}
+
+// ── WORD POPUP ──
+let currentWord = null;
+const addedWords = new Set();
+
+function showWordPopup(e, el) {
+  e.stopPropagation();
+  const popup = document.getElementById('wordPopup');
+  currentWord = {
+    word: el.dataset.word,
+    roman: el.dataset.roman,
+    pos: el.dataset.pos,
+    def: el.dataset.def
+  };
+  document.getElementById('pWord').textContent = currentWord.word;
+  document.getElementById('pRoman').textContent = currentWord.roman;
+  document.getElementById('pPos').textContent = currentWord.pos;
+  document.getElementById('pMeaning').textContent = currentWord.def;
+  const btn = document.getElementById('pAddBtn');
+  if(addedWords.has(currentWord.word)) {
+    btn.textContent = '✓ 已在單字庫';
+    btn.classList.add('added');
+  } else {
+    btn.textContent = '＋ 加入單字庫';
+    btn.classList.remove('added');
+  }
+  const rect = el.getBoundingClientRect();
+  popup.style.display = 'block';
+  popup.style.top = (rect.bottom + window.scrollY + 8) + 'px';
+  popup.style.left = Math.min(rect.left, window.innerWidth - 300) + 'px';
+  popup.style.pointerEvents = 'all';
+}
+
+function addToVocab() {
+  if(!currentWord) return;
+  addedWords.add(currentWord.word);
+  const btn = document.getElementById('pAddBtn');
+  btn.textContent = '✓ 已加入單字庫';
+  btn.classList.add('added');
+  showToast('✦ 已將「' + currentWord.word + '」加入單字庫');
+  setTimeout(() => { document.getElementById('wordPopup').style.display = 'none'; }, 800);
+}
+
+document.addEventListener('click', () => { document.getElementById('wordPopup').style.display = 'none'; });
+
+// ── SRS FLIP ──
+function flipCard(el) {
+  const meaning = el.querySelector('.srs-meaning');
+  const word = el.querySelector('.srs-word');
+  if(meaning.style.display === 'none') {
+    meaning.style.display = 'block';
+    word.style.opacity = '0.5';
+  } else {
+    meaning.style.display = 'none';
+    word.style.opacity = '1';
+  }
+}
+
+// ── VOCAB FILTER ──
+function setFilter(el, type) {
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+}
+function filterVocab(val) {}
+
+// ── QUIZ ──
+const quizData = [
+  { q: '배우다', hint: 'bae-u-da · 動詞', opts: ['學習、學會', '好吃、美味', '重要的', '但是'], ans: 0 },
+  { q: '에서', hint: 'e-seo · 助詞', opts: ['目的地', '動作發生場所', '時間點', '比較對象'], ans: 1 },
+  { q: '차이', hint: 'cha-i · 名詞', opts: ['相同', '差異', '重要', '場所'], ans: 1 },
+  { q: '그러나', hint: 'geu-reo-na · 連接詞', opts: ['所以', '而且', '但是', '因為'], ans: 2 },
+  { q: '중요하다', hint: 'jung-yo-ha-da · 形容詞', opts: ['有趣的', '困難的', '重要的', '簡單的'], ans: 2 },
+];
+let qIdx = 0;
+let answered = false;
+
+function startQuiz() {
+  qIdx = 0;
+  document.getElementById('quizMenu').style.display = 'none';
+  document.getElementById('quizPlay').classList.add('active');
+  loadQuestion();
+}
+function loadQuestion() {
+  answered = false;
+  const q = quizData[qIdx];
+  document.getElementById('qNum').textContent = qIdx+1;
+  document.getElementById('quizProgressFill').style.width = ((qIdx+1)/5*100)+'%';
+  document.getElementById('quizQuestion').textContent = q.q;
+  document.getElementById('quizHint').textContent = q.hint;
+  document.getElementById('quizFeedback').style.display = 'none';
+  const optEl = document.getElementById('quizOptions');
+  optEl.innerHTML = '';
+  q.opts.forEach((o,i) => {
+    const btn = document.createElement('button');
+    btn.className = 'quiz-option';
+    btn.textContent = o;
+    btn.onclick = () => answer(i);
+    optEl.appendChild(btn);
+  });
+}
+function answer(i) {
+  if(answered) return;
+  answered = true;
+  const q = quizData[qIdx];
+  const opts = document.querySelectorAll('.quiz-option');
+  opts[i].classList.add(i===q.ans ? 'correct' : 'wrong');
+  if(i!==q.ans) opts[q.ans].classList.add('correct');
+  const fb = document.getElementById('quizFeedback');
+  const ft = document.getElementById('feedbackText');
+  fb.style.display = 'block';
+  ft.textContent = i===q.ans ? '✓ 正確！' : '✗ 再想想—正確答案是：' + q.opts[q.ans];
+  ft.style.color = i===q.ans ? 'var(--accent-teal)' : 'var(--accent-red)';
+}
+function nextQuestion() {
+  qIdx++;
+  if(qIdx >= quizData.length) {
+    showToast('🎉 測驗完成！共 '+quizData.length+' 題');
+    endQuiz();
+  } else { loadQuestion(); }
+}
+function endQuiz() {
+  document.getElementById('quizMenu').style.display = 'block';
+  document.getElementById('quizPlay').classList.remove('active');
+}
+
+// ── TOAST ──
+let toastTimer = null;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+</script>
+</body>
+</html>
