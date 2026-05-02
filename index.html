@@ -1870,38 +1870,114 @@ async function loadTranscriptContent(id) {
 
   // 渲染逐字稿
   if (segments.length === 0 && tj.text) {
-    // PDF 純文字模式
-    const paras = tj.text.split('\n').filter(p => p.trim());
+    const paras = tj.text.split('\n').filter(p => p.trim().match(/[가-힣]/));
+    if (paras.length === 0) {
+      contentEl.innerHTML = `<div class="transcript-title">${data.title}</div><div style="padding:20px;color:var(--ink-muted);font-size:13px">此 PDF 無法提取韓文文字（可能是掃描版），請嘗試文字版 PDF。</div>`;
+      return;
+    }
     contentEl.innerHTML = `
       <div class="transcript-title">${data.title}</div>
+      <div style="font-size:12px;color:var(--ink-muted);margin-bottom:20px">點擊段落可查看中文翻譯與單字標記</div>
       ${paras.map((p, i) => `
-        <div class="transcript-segment" onclick="activateSeg(${i})">
-          <div class="seg-ko">${renderClickableText(p)}</div>
+        <div class="transcript-segment" id="tseg${i}" onclick="toggleTranslation(this)">
+          <div class="seg-ko" data-raw="${p.replace(/"/g,'&quot;')}">${p}</div>
+          <div class="seg-translation" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--border-soft)"></div>
         </div>
       `).join('')}
     `;
   } else {
-    // 音檔/影片逐字稿模式
     contentEl.innerHTML = `
       <div class="transcript-title">${data.title}</div>
+      <div style="font-size:12px;color:var(--ink-muted);margin-bottom:20px">點擊段落可查看中文翻譯與單字標記</div>
       ${segments.map((seg, i) => {
         const start = formatTime(seg.start || 0);
         const end = formatTime(seg.end || 0);
-        return `<div class="transcript-segment" id="tseg${i}" onclick="seekToTime(${seg.start || 0}, ${i})">
+        const text = (seg.text || '').trim();
+        return `<div class="transcript-segment" id="tseg${i}" onclick="handleSegClick(event, ${seg.start || 0}, ${i}, this)">
           <div class="seg-time">${start} – ${end}</div>
-          <div class="seg-ko">${renderClickableText(seg.text || '')}</div>
+          <div class="seg-ko" data-raw="${text.replace(/"/g,'&quot;')}">${text}</div>
+          <div class="seg-translation" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--border-soft)"></div>
         </div>`;
       }).join('')}
     `;
   }
 }
 
-// ── 文字渲染成可點擊單字 ──
+// ── AI 分析段落（翻譯 + 單字標記）──
+const analysisCache = {};
+
+async function analyzeSegment(text, segEl) {
+  if (!text?.trim()) return;
+  if (analysisCache[text]) {
+    renderAnalysis(segEl, analysisCache[text]);
+    return;
+  }
+  const btn = segEl.querySelector('.analyze-btn');
+  if (btn) { btn.textContent = '分析中...'; btn.disabled = true; }
+
+  try {
+    const res = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
+    });
+    if (!res.ok) throw new Error('分析失敗');
+    const data = await res.json();
+    analysisCache[text] = data;
+    renderAnalysis(segEl, data);
+  } catch (err) {
+    const transEl = segEl.querySelector('.seg-translation');
+    if (transEl) transEl.innerHTML = `<span style="color:var(--accent-red);font-size:12px">分析失敗：${err.message}</span>`;
+    if (btn) { btn.textContent = '重試'; btn.disabled = false; }
+  }
+}
+
+function renderAnalysis(segEl, data) {
+  // 顯示翻譯
+  const transEl = segEl.querySelector('.seg-translation');
+  if (transEl && data.translation) {
+    transEl.innerHTML = `<span style="color:var(--ink-muted);font-size:13px;line-height:1.6">${data.translation}</span>`;
+    transEl.style.display = 'block';
+  }
+
+  // 更新韓文文字，標記可加入單字庫的單字
+  const koEl = segEl.querySelector('.seg-ko');
+  if (koEl && data.words?.length > 0) {
+    let html = koEl.dataset.raw || koEl.textContent;
+    data.words.forEach(w => {
+      if (!w.word) return;
+      const escaped = w.word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(escaped, 'g');
+      html = html.replace(regex, `<span class="word-tag" data-word="${w.word}" data-roman="${w.romanization||''}" data-pos="${w.pos||'韓文'}" data-def="${w.definition||''}" onclick="showWordPopup(event,this)">${w.word}</span>`);
+    });
+    if (!koEl.dataset.raw) koEl.dataset.raw = koEl.textContent;
+    koEl.innerHTML = html;
+  }
+
+  // 隱藏分析按鈕
+  const btn = segEl.querySelector('.analyze-btn');
+  if (btn) btn.style.display = 'none';
+}
+
+// ── 文字渲染成可點擊單字（基礎版，AI 分析前用）──
 function renderClickableText(text) {
-  // 把每個韓文詞組變成可點擊的 span
-  return text.replace(/([가-힣]+)/g, (word) => {
-    return `<span class="word-tag" data-word="${word}" data-roman="" data-pos="韓文" data-def="點擊查詢" onclick="lookupWord(event,this,'${word}')">${word}</span>`;
-  });
+  return `<span>${text}</span>`;
+}
+
+// ── 切換翻譯顯示 ──
+function toggleTranslation(segEl) {
+  const transEl = segEl.querySelector('.seg-translation');
+  if (!transEl) return;
+  const koEl = segEl.querySelector('.seg-ko');
+  const rawText = koEl?.dataset.raw || koEl?.textContent || '';
+  if (transEl.dataset.loaded !== 'true') {
+    transEl.dataset.loaded = 'true';
+    transEl.innerHTML = '<span style="color:var(--ink-faint);font-size:12px">翻譯中...</span>';
+    transEl.style.display = 'block';
+    analyzeSegment(rawText, segEl);
+  } else {
+    transEl.style.display = transEl.style.display === 'none' ? 'block' : 'none';
+  }
 }
 
 // ── 查詢單字（點擊時呼叫） ──
@@ -1945,6 +2021,16 @@ function formatTime(sec) {
   const m = Math.floor(sec / 60).toString().padStart(2, '0');
   const s = Math.floor(sec % 60).toString().padStart(2, '0');
   return `${m}:${s}`;
+}
+
+// ── 音檔段落點擊：單擊翻譯，雙擊跳轉 ──
+let segClickTimer = null;
+function handleSegClick(e, sec, idx, segEl) {
+  if (e.target.classList.contains('word-tag')) return;
+  clearTimeout(segClickTimer);
+  segClickTimer = setTimeout(() => {
+    toggleTranslation(segEl);
+  }, 200);
 }
 
 // ── 跳轉到指定時間 ──
