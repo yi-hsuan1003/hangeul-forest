@@ -2,6 +2,7 @@
   "name": "hangeul-forest",
   "version": "1.0.0",
   "dependencies": {
-    "youtube-transcript": "^1.2.1"
+    "youtube-transcript": "^1.2.1",
+    "pdfjs-dist": "^3.11.174"
   }
 }
