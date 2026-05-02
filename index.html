@@ -1439,13 +1439,30 @@ body {
 
       <!-- PDF Upload -->
       <div id="upload-pdf" class="upload-panel" style="display:none">
-        <div style="background:var(--cream);border:2px dashed var(--border);border-radius:14px;padding:48px 24px;text-align:center;cursor:pointer;transition:all 0.2s;max-width:600px"
-          onclick="document.getElementById('pdf-file-input').click()">
+        <div id="pdf-dropzone" style="background:var(--cream);border:2px dashed var(--border);border-radius:14px;padding:48px 24px;text-align:center;cursor:pointer;transition:all 0.2s;max-width:600px"
+          onclick="document.getElementById('pdf-file-input').click()"
+          ondragover="event.preventDefault();this.style.borderColor='var(--accent-teal)'"
+          ondragleave="this.style.borderColor='var(--border)'"
+          ondrop="handlePdfDrop(event)">
           <div style="font-size:40px;margin-bottom:12px">📖</div>
-          <div style="font-family:'DM Serif Display',serif;font-size:18px;color:var(--ink);margin-bottom:8px">上傳 PDF 課本</div>
-          <div style="font-size:13px;color:var(--ink-muted);margin-bottom:16px">自動解析文字，生成互動式閱讀頁面</div>
+          <div style="font-family:'DM Serif Display',serif;font-size:18px;color:var(--ink);margin-bottom:8px">拖放 PDF 課本到這裡</div>
+          <div style="font-size:13px;color:var(--ink-muted);margin-bottom:16px">自動解析韓文文字，生成互動式閱讀頁面</div>
           <button class="btn-primary" style="pointer-events:none">選擇 PDF</button>
-          <input type="file" id="pdf-file-input" accept=".pdf" style="display:none" onchange="showToast('📖 PDF 解析功能即將上線！')">
+          <input type="file" id="pdf-file-input" accept=".pdf" style="display:none" onchange="handlePdfFile(this.files[0])">
+        </div>
+        <div id="pdf-progress" style="display:none;max-width:600px;margin-top:20px">
+          <div style="background:var(--cream);border:1px solid var(--border);border-radius:12px;padding:24px">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+              <div id="pdf-progress-icon" style="font-size:24px">⏳</div>
+              <div>
+                <div id="pdf-progress-filename" style="font-size:14px;font-weight:500;color:var(--ink)"></div>
+                <div id="pdf-progress-status" style="font-size:12px;color:var(--ink-muted);margin-top:2px">處理中...</div>
+              </div>
+            </div>
+            <div style="background:var(--parchment);border-radius:4px;height:6px;overflow:hidden">
+              <div id="pdf-progress-bar" style="height:100%;background:var(--accent-purple);border-radius:4px;width:0%;transition:width 0.3s ease"></div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1453,11 +1470,13 @@ body {
       <div id="upload-youtube" class="upload-panel" style="display:none">
         <div style="background:var(--cream);border:1px solid var(--border);border-radius:14px;padding:32px;max-width:600px">
           <div style="font-size:40px;margin-bottom:12px;text-align:center">▶</div>
-          <div style="font-family:'DM Serif Display',serif;font-size:18px;color:var(--ink);margin-bottom:16px;text-align:center">貼上 YouTube 連結</div>
-          <div style="display:flex;gap:10px">
+          <div style="font-family:'DM Serif Display',serif;font-size:18px;color:var(--ink);margin-bottom:8px;text-align:center">貼上 YouTube 連結</div>
+          <div style="font-size:13px;color:var(--ink-muted);margin-bottom:20px;text-align:center">自動抓取韓文字幕，生成互動式逐字稿</div>
+          <div style="display:flex;gap:10px;margin-bottom:12px">
             <input id="youtube-url" class="search-box" type="text" placeholder="https://www.youtube.com/watch?v=...">
-            <button class="btn-primary" onclick="showToast('▶ YouTube 轉錄功能即將上線！')">轉錄</button>
+            <button class="btn-primary" onclick="handleYoutube()">抓取字幕</button>
           </div>
+          <div id="yt-status" style="font-size:12px;color:var(--ink-muted);min-height:18px"></div>
         </div>
       </div>
 
@@ -1684,6 +1703,141 @@ function endQuiz() {
   document.getElementById('quizPlay').classList.remove('active');
 }
 
+// ── PDF UPLOAD ──
+function handlePdfDrop(e) {
+  e.preventDefault();
+  document.getElementById('pdf-dropzone').style.borderColor = 'var(--border)';
+  const file = e.dataTransfer.files[0];
+  if (file) handlePdfFile(file);
+}
+
+async function handlePdfFile(file) {
+  if (!currentUser) { showToast('請先登入'); return; }
+  if (!file || !file.name.endsWith('.pdf')) { showToast('請選擇 PDF 檔案'); return; }
+
+  const progressEl = document.getElementById('pdf-progress');
+  const filenameEl = document.getElementById('pdf-progress-filename');
+  const statusEl   = document.getElementById('pdf-progress-status');
+  const barEl      = document.getElementById('pdf-progress-bar');
+  const iconEl     = document.getElementById('pdf-progress-icon');
+
+  progressEl.style.display = 'block';
+  filenameEl.textContent = file.name;
+  statusEl.textContent = '上傳 PDF...';
+  barEl.style.width = '10%';
+  iconEl.textContent = '⬆️';
+
+  try {
+    const filePath = `${currentUser.id}/${Date.now()}_${file.name}`;
+    const { error: uploadError } = await _supa.storage.from('media').upload(filePath, file);
+    if (uploadError) throw new Error('上傳失敗：' + uploadError.message);
+
+    barEl.style.width = '40%';
+    statusEl.textContent = '解析 PDF 文字...';
+    iconEl.textContent = '📖';
+
+    const { data: urlData } = _supa.storage.from('media').getPublicUrl(filePath);
+    const fileUrl = urlData.publicUrl;
+
+    const parseRes = await fetch('/api/parse-pdf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fileUrl })
+    });
+
+    if (!parseRes.ok) {
+      const err = await parseRes.json();
+      throw new Error(err.error || 'PDF 解析失敗');
+    }
+
+    const { text, pages } = await parseRes.json();
+    barEl.style.width = '80%';
+    statusEl.textContent = '儲存中...';
+    iconEl.textContent = '💾';
+
+    const segments = text.split('\n\n').filter(s => s.trim()).map((s, i) => ({
+      start: i * 10, end: (i + 1) * 10, text: s.trim()
+    }));
+
+    const { error: dbError } = await _supa.from('transcripts').insert({
+      user_id: currentUser.id,
+      title: file.name.replace('.pdf', ''),
+      file_url: fileUrl,
+      file_type: 'pdf',
+      status: 'done',
+      transcript_json: { text, segments },
+      duration_seconds: pages * 10
+    });
+    if (dbError) throw new Error('儲存失敗：' + dbError.message);
+
+    barEl.style.width = '100%';
+    iconEl.textContent = '✅';
+    statusEl.textContent = `完成！共 ${pages} 頁`;
+    showToast('📖 PDF 解析完成！');
+    await loadTranscriptList();
+    setTimeout(() => { progressEl.style.display = 'none'; barEl.style.width = '0%'; }, 3000);
+
+  } catch (err) {
+    iconEl.textContent = '❌';
+    statusEl.textContent = '失敗：' + err.message;
+    showToast('PDF 處理失敗：' + err.message);
+  }
+}
+
+// ── YOUTUBE TRANSCRIPT ──
+async function handleYoutube() {
+  if (!currentUser) { showToast('請先登入'); return; }
+  const url = document.getElementById('youtube-url').value.trim();
+  if (!url) { showToast('請貼上 YouTube 連結'); return; }
+
+  const statusEl = document.getElementById('yt-status');
+  statusEl.textContent = '🔍 抓取字幕中...';
+  statusEl.style.color = 'var(--ink-muted)';
+
+  try {
+    const res = await fetch('/api/youtube-transcript', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url })
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || '字幕抓取失敗');
+    }
+
+    const data = await res.json();
+    statusEl.textContent = '💾 儲存中...';
+
+    const videoId = data.videoId;
+    const thumbUrl = `https://img.youtube.com/vi/${videoId}/0.jpg`;
+    const duration = Math.round(data.segments[data.segments.length - 1]?.end || 0);
+
+    const { error: dbError } = await _supa.from('transcripts').insert({
+      user_id: currentUser.id,
+      title: `YouTube: ${videoId}`,
+      file_url: url,
+      file_type: 'youtube',
+      status: 'done',
+      transcript_json: { text: data.text, segments: data.segments },
+      duration_seconds: duration
+    });
+    if (dbError) throw new Error(dbError.message);
+
+    statusEl.textContent = '✅ 完成！';
+    statusEl.style.color = 'var(--accent-teal)';
+    document.getElementById('youtube-url').value = '';
+    showToast('▶ YouTube 字幕抓取完成！');
+    await loadTranscriptList();
+    setTimeout(() => { statusEl.textContent = ''; }, 3000);
+
+  } catch (err) {
+    statusEl.textContent = '❌ 失敗：' + err.message;
+    statusEl.style.color = 'var(--accent-red)';
+    showToast('失敗：' + err.message);
+  }
+}
+
 // ── UPLOAD TAB SWITCH ──
 function switchUploadTab(tab, el) {
   document.querySelectorAll('.upload-panel').forEach(p => p.style.display = 'none');
@@ -1703,8 +1857,6 @@ function handleAudioDrop(e) {
 async function handleAudioFile(file) {
   if (!currentUser) { showToast('請先登入'); return; }
   if (!file) return;
-  const maxSize = 25 * 1024 * 1024;
-  if (file.size > maxSize) { showToast('檔案超過 25MB 限制'); return; }
 
   const progressEl = document.getElementById('upload-progress');
   const filenameEl = document.getElementById('progress-filename');
@@ -1714,31 +1866,33 @@ async function handleAudioFile(file) {
 
   progressEl.style.display = 'block';
   filenameEl.textContent = file.name;
-  statusEl.textContent = '上傳中...';
-  barEl.style.width = '10%';
+  statusEl.textContent = '上傳到雲端儲存空間...';
+  barEl.style.width = '5%';
+  barEl.style.background = 'var(--accent-teal)';
   iconEl.textContent = '⬆️';
 
   try {
-    // 1. 上傳到 Supabase Storage
+    // 1. 直接上傳到 Supabase Storage（無大小限制）
     const filePath = `${currentUser.id}/${Date.now()}_${file.name}`;
-    const { error: uploadError } = await _supa.storage.from('media').upload(filePath, file);
+    const { error: uploadError } = await _supa.storage.from('media').upload(filePath, file, {
+      cacheControl: '3600',
+      upsert: false
+    });
     if (uploadError) throw new Error('上傳失敗：' + uploadError.message);
 
-    barEl.style.width = '35%';
-    statusEl.textContent = 'Whisper 轉錄中（可能需要 1–3 分鐘）...';
+    barEl.style.width = '40%';
+    statusEl.textContent = 'Whisper AI 轉錄中（依檔案長度需要 1–5 分鐘）...';
     iconEl.textContent = '🎙️';
 
     // 2. 取得公開 URL
     const { data: urlData } = _supa.storage.from('media').getPublicUrl(filePath);
     const fileUrl = urlData.publicUrl;
 
-    // 3. 呼叫 Vercel Function 轉錄
-    const formData = new FormData();
-    formData.append('file', file);
-
-    const transcribeRes = await fetch('/api/transcribe', {
+    // 3. 用 URL 呼叫 Whisper（不受 Vercel 4.5MB 限制）
+    const transcribeRes = await fetch('/api/transcribe-url', {
       method: 'POST',
-      body: formData
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fileUrl, fileName: file.name })
     });
 
     if (!transcribeRes.ok) {
@@ -1746,13 +1900,14 @@ async function handleAudioFile(file) {
       throw new Error(err.error || '轉錄失敗');
     }
 
-    barEl.style.width = '80%';
+    barEl.style.width = '85%';
     statusEl.textContent = '儲存逐字稿...';
     iconEl.textContent = '💾';
 
     const transcriptData = await transcribeRes.json();
+    const duration = Math.round(transcriptData.segments?.reduce((a, s) => Math.max(a, s.end || 0), 0) || 0);
 
-    // 4. 存入 Supabase transcripts 表
+    // 4. 存入資料庫
     const { error: dbError } = await _supa.from('transcripts').insert({
       user_id: currentUser.id,
       title: file.name.replace(/\.[^/.]+$/, ''),
@@ -1760,23 +1915,22 @@ async function handleAudioFile(file) {
       file_type: file.type.startsWith('video') ? 'video' : 'audio',
       status: 'done',
       transcript_json: transcriptData,
-      duration_seconds: Math.round(transcriptData.segments?.reduce((a, s) => Math.max(a, s.end || 0), 0) || 0)
+      duration_seconds: duration
     });
     if (dbError) throw new Error('儲存失敗：' + dbError.message);
 
     barEl.style.width = '100%';
     statusEl.textContent = '完成！';
     iconEl.textContent = '✅';
-    showToast('🎉 轉錄完成！去閱讀器查看逐字稿');
+    showToast('🎉 轉錄完成！');
     await loadTranscriptList();
-
     setTimeout(() => { progressEl.style.display = 'none'; barEl.style.width = '0%'; }, 3000);
 
   } catch (err) {
     iconEl.textContent = '❌';
     statusEl.textContent = '失敗：' + err.message;
     barEl.style.background = 'var(--accent-red)';
-    showToast('上傳失敗：' + err.message);
+    showToast('失敗：' + err.message);
   }
 }
 
