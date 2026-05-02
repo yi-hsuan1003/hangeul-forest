@@ -1108,86 +1108,32 @@ body {
       <!-- Left: resource list -->
       <div class="reader-sidebar">
         <div class="section-heading" style="margin-bottom:12px">我的教材</div>
-        <div class="resource-list-item active">
-          <div class="res-icon">📻</div>
-          <div class="res-title">TTMIK Level 2 – Ep.12</div>
-          <div class="res-meta">Podcast · 8:34 · 已轉錄</div>
+        <div id="reader-resource-list">
+          <div style="font-size:12px;color:var(--ink-muted);padding:12px 0">載入中...</div>
         </div>
-        <div class="resource-list-item">
-          <div class="res-icon">📖</div>
-          <div class="res-title">延世韓文 1 – 第5課</div>
-          <div class="res-meta">PDF · 3頁 · 已解析</div>
-        </div>
-        <div class="resource-list-item">
-          <div class="res-icon">🎬</div>
-          <div class="res-title">韓劇《我的解放日誌》片段</div>
-          <div class="res-meta">影片 · 2:18 · 已轉錄</div>
-        </div>
-        <div style="margin-top:16px; padding-top:16px; border-top:1px solid var(--border);">
-          <button class="btn-outline" style="width:100%; font-size:12px;" onclick="showPage('upload')">＋ 上傳新教材</button>
+        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+          <button class="btn-outline" style="width:100%;font-size:12px;" onclick="showPage('upload',document.querySelector('.nav-item:nth-child(6)'))">＋ 上傳新教材</button>
         </div>
       </div>
 
-      <!-- Right: reader + audio -->
+      <!-- Right: reader content -->
       <div class="reader-main">
-        <div class="audio-player">
+        <!-- Audio player (only shown for audio/video) -->
+        <div class="audio-player" id="reader-audio-bar" style="display:none">
           <button class="play-btn" id="playBtn" onclick="togglePlay()">▶</button>
           <div class="waveform-container" onclick="seekWaveform(event, this)" id="waveform">
             <div class="waveform-bars" id="waveformBars"></div>
           </div>
-          <div class="time-display" id="timeDisplay">01:24 / 08:34</div>
+          <div class="time-display" id="timeDisplay">00:00</div>
+          <audio id="audioEl" style="display:none"></audio>
         </div>
-        <div class="transcript-area">
-          <div class="transcript-title">Level 2 Lesson 12 – 이/가 되다 · 에서 / 에</div>
 
-          <div class="transcript-segment" id="seg0" onclick="activateSeg(0)">
-            <div class="seg-time">00:00 – 00:18</div>
-            <div class="seg-ko">
-              <span class="word-tag" data-word="안녕하세요" data-roman="an-nyeong-ha-se-yo" data-pos="感嘆詞" data-def="你好（敬語問候語）" onclick="showWordPopup(event,this)">안녕하세요</span>,
-              <span class="word-tag" data-word="오늘" data-roman="o-neul" data-pos="名詞" data-def="今天、今日" onclick="showWordPopup(event,this)">오늘</span>은
-              <span class="word-tag grammar" data-word="-(이)에서" data-roman="-(i)e-seo" data-pos="助詞（文法）" data-def="【文法】表示動作發生的場所。例：학교에서 공부해요 = 在學校學習" onclick="showWordPopup(event,this)">에서</span>
-              <span class="word-tag" data-word="배우다" data-roman="bae-u-da" data-pos="動詞" data-def="學習、學會" onclick="showWordPopup(event,this)">배울</span> 거예요.
-            </div>
-            <div class="seg-zh">今天，我們要學習「에서」的用法。</div>
-          </div>
-
-          <div class="transcript-segment" id="seg1" onclick="activateSeg(1)">
-            <div class="seg-time">00:19 – 00:45</div>
-            <div class="seg-ko">
-              <span class="word-tag" data-word="먼저" data-roman="meon-jeo" data-pos="副詞" data-def="首先、先" onclick="showWordPopup(event,this)">먼저</span>,
-              <span class="word-tag" data-word="학교" data-roman="hak-gyo" data-pos="名詞" data-def="學校" onclick="showWordPopup(event,this)">학교</span>
-              <span class="word-tag grammar" data-word="에서" data-roman="e-seo" data-pos="助詞" data-def="【문법】表示動作場所：在（某地方）做某事" onclick="showWordPopup(event,this)">에서</span>
-              <span class="word-tag" data-word="공부하다" data-roman="gong-bu-ha-da" data-pos="動詞" data-def="學習、唸書" onclick="showWordPopup(event,this)">공부해요</span>.
-              <span class="word-tag" data-word="그러나" data-roman="geu-reo-na" data-pos="連接詞" data-def="但是、然而" onclick="showWordPopup(event,this)">그러나</span>,
-              집
-              <span class="word-tag grammar" data-word="에" data-roman="e" data-pos="助詞（文法）" data-def="【文法】表示存在場所或目的地。與에서不同：에 = 存在的地方，에서 = 動作發生的地方" onclick="showWordPopup(event,this)">에</span>
-              있어요.
-            </div>
-            <div class="seg-zh">首先，「在學校學習」用 에서。但是「在家裡（存在）」用 에。</div>
-          </div>
-
-          <div class="transcript-segment active" id="seg2" onclick="activateSeg(2)">
-            <div class="seg-time">00:46 – 01:24 ▶ 播放中</div>
-            <div class="seg-ko">
-              <span class="word-tag" data-word="중요하다" data-roman="jung-yo-ha-da" data-pos="形容詞" data-def="重要的" onclick="showWordPopup(event,this)">중요한</span>
-              <span class="word-tag" data-word="차이" data-roman="cha-i" data-pos="名詞" data-def="差異、差別" onclick="showWordPopup(event,this)">차이</span>예요.
-              <span class="word-tag" data-word="에서" data-roman="e-seo" data-pos="助詞" data-def="表示動作發生場所" onclick="showWordPopup(event,this)">에서</span>는
-              <span class="word-tag" data-word="동작" data-roman="dong-jak" data-pos="名詞" data-def="動作、行為" onclick="showWordPopup(event,this)">동작</span>을
-              <span class="word-tag" data-word="나타내다" data-roman="na-ta-nae-da" data-pos="動詞" data-def="表示、表現" onclick="showWordPopup(event,this)">나타내요</span>.
-            </div>
-            <div class="seg-zh">這是很重要的差異。에서 表示動作的發生地點。</div>
-          </div>
-
-          <div class="transcript-segment" id="seg3" onclick="activateSeg(3)">
-            <div class="seg-time">01:25 – 02:10</div>
-            <div class="seg-ko">
-              <span class="word-tag" data-word="예를 들면" data-roman="ye-reul deul-myeon" data-pos="慣用語" data-def="例如、舉例來說" onclick="showWordPopup(event,this)">예를 들면</span>,
-              "<span class="word-tag" data-word="카페" data-roman="ka-pe" data-pos="名詞" data-def="咖啡廳（借詞自法語 café）" onclick="showWordPopup(event,this)">카페</span>
-              <span class="word-tag grammar" data-word="에서" data-roman="e-seo" data-pos="助詞" data-def="在咖啡廳（動作場所）" onclick="showWordPopup(event,this)">에서</span>
-              <span class="word-tag" data-word="커피를 마시다" data-roman="keo-pi-reul ma-si-da" data-pos="動詞片語" data-def="喝咖啡" onclick="showWordPopup(event,this)">커피를 마셔요</span>"
-              <span class="word-tag" data-word="맞다" data-roman="mat-da" data-pos="形容詞" data-def="正確的、對的" onclick="showWordPopup(event,this)">맞아요</span>.
-            </div>
-            <div class="seg-zh">例如，「在咖啡廳喝咖啡」→ 카페에서 커피를 마셔요。這樣用是正確的。</div>
+        <!-- Transcript content area -->
+        <div class="transcript-area" id="reader-content">
+          <div style="text-align:center;padding:60px 20px;color:var(--ink-muted)">
+            <div style="font-size:32px;margin-bottom:16px">📖</div>
+            <div style="font-size:15px;margin-bottom:8px">從左側選擇教材開始閱讀</div>
+            <div style="font-size:13px">或 <span style="color:var(--accent-teal);cursor:pointer" onclick="showPage('upload')">上傳新教材</span></div>
           </div>
         </div>
       </div>
@@ -1522,6 +1468,7 @@ function showPage(name, navEl) {
   };
   document.getElementById('page-title').textContent = titles[name] || name;
   if(name === 'quiz') { document.getElementById('quizMenu').style.display='block'; document.getElementById('quizPlay').classList.remove('active'); }
+  if(name === 'reader') { loadReaderList(); }
 }
 
 // ── WAVEFORM ──
@@ -1848,6 +1795,150 @@ async function handleYoutube() {
     statusEl.style.color = 'var(--accent-red)';
     showToast('失敗：' + err.message);
   }
+}
+
+// ── 閱讀器：載入教材列表 ──
+async function loadReaderList() {
+  if (!currentUser) return;
+  const listEl = document.getElementById('reader-resource-list');
+  if (!listEl) return;
+  const { data, error } = await _supa.from('transcripts').select('id,title,file_type,duration_seconds,status').order('created_at', { ascending: false });
+  if (error || !data || data.length === 0) {
+    listEl.innerHTML = '<div style="font-size:12px;color:var(--ink-muted);padding:8px 0">還沒有教材，去上傳吧！</div>';
+    return;
+  }
+  listEl.innerHTML = data.map(t => {
+    const icon = t.file_type === 'pdf' ? '📖' : t.file_type === 'youtube' ? '▶' : t.file_type === 'video' ? '🎬' : '🎵';
+    const mins = Math.floor((t.duration_seconds || 0) / 60);
+    const dur = mins > 0 ? `${mins} 分鐘` : '';
+    return `<div class="resource-list-item" id="res-${t.id}" onclick="loadTranscriptContent('${t.id}')">
+      <div class="res-icon">${icon}</div>
+      <div class="res-title">${t.title}</div>
+      <div class="res-meta">${t.file_type?.toUpperCase()} ${dur ? '· ' + dur : ''} · 已完成</div>
+    </div>`;
+  }).join('');
+}
+
+// ── 閱讀器：載入單篇逐字稿 ──
+async function loadTranscriptContent(id) {
+  document.querySelectorAll('.resource-list-item').forEach(el => el.classList.remove('active'));
+  const activeEl = document.getElementById('res-' + id);
+  if (activeEl) activeEl.classList.add('active');
+
+  const contentEl = document.getElementById('reader-content');
+  contentEl.innerHTML = '<div style="text-align:center;padding:40px;color:var(--ink-muted)">載入中...</div>';
+
+  const { data, error } = await _supa.from('transcripts').select('*').eq('id', id).single();
+  if (error || !data) { contentEl.innerHTML = '<div style="padding:20px;color:var(--accent-red)">載入失敗</div>'; return; }
+
+  const tj = data.transcript_json || {};
+  const segments = tj.segments || [];
+  const isAudio = data.file_type === 'audio' || data.file_type === 'video';
+
+  // 顯示/隱藏音頻播放器
+  const audioBar = document.getElementById('reader-audio-bar');
+  if (isAudio && data.file_url) {
+    audioBar.style.display = 'flex';
+    const audioEl = document.getElementById('audioEl');
+    audioEl.src = data.file_url;
+  } else {
+    audioBar.style.display = 'none';
+  }
+
+  // 渲染逐字稿
+  if (segments.length === 0 && tj.text) {
+    // PDF 純文字模式
+    const paras = tj.text.split('\n').filter(p => p.trim());
+    contentEl.innerHTML = `
+      <div class="transcript-title">${data.title}</div>
+      ${paras.map((p, i) => `
+        <div class="transcript-segment" onclick="activateSeg(${i})">
+          <div class="seg-ko">${renderClickableText(p)}</div>
+        </div>
+      `).join('')}
+    `;
+  } else {
+    // 音檔/影片逐字稿模式
+    contentEl.innerHTML = `
+      <div class="transcript-title">${data.title}</div>
+      ${segments.map((seg, i) => {
+        const start = formatTime(seg.start || 0);
+        const end = formatTime(seg.end || 0);
+        return `<div class="transcript-segment" id="tseg${i}" onclick="seekToTime(${seg.start || 0}, ${i})">
+          <div class="seg-time">${start} – ${end}</div>
+          <div class="seg-ko">${renderClickableText(seg.text || '')}</div>
+        </div>`;
+      }).join('')}
+    `;
+  }
+}
+
+// ── 文字渲染成可點擊單字 ──
+function renderClickableText(text) {
+  // 把每個韓文詞組變成可點擊的 span
+  return text.replace(/([가-힣]+)/g, (word) => {
+    return `<span class="word-tag" data-word="${word}" data-roman="" data-pos="韓文" data-def="點擊查詢" onclick="lookupWord(event,this,'${word}')">${word}</span>`;
+  });
+}
+
+// ── 查詢單字（點擊時呼叫） ──
+async function lookupWord(e, el, word) {
+  e.stopPropagation();
+  // 先用現有 popup 顯示
+  currentWord = { word, roman: '查詢中...', pos: '韓文', def: '載入中...', source: '逐字稿' };
+  document.getElementById('pWord').textContent = word;
+  document.getElementById('pRoman').textContent = '...';
+  document.getElementById('pPos').textContent = '韓文';
+  document.getElementById('pMeaning').textContent = '載入中...';
+  const btn = document.getElementById('pAddBtn');
+  btn.textContent = addedWords.has(word) ? '✓ 已在單字庫' : '＋ 加入單字庫';
+  btn.className = 'popup-add-btn' + (addedWords.has(word) ? ' added' : '');
+  btn.disabled = false;
+
+  const popup = document.getElementById('wordPopup');
+  const rect = el.getBoundingClientRect();
+  popup.style.display = 'block';
+  popup.style.top = (rect.bottom + window.scrollY + 8) + 'px';
+  popup.style.left = Math.min(rect.left, window.innerWidth - 300) + 'px';
+  popup.style.pointerEvents = 'all';
+
+  // 查詢定義（已在單字庫的直接顯示）
+  const existing = dbVocab.find(v => v.word === word);
+  if (existing) {
+    currentWord = { word, roman: existing.romanization || '', pos: existing.pos || '韓文', def: existing.definition || '' };
+    document.getElementById('pRoman').textContent = existing.romanization || '';
+    document.getElementById('pMeaning').textContent = existing.definition || '（已在單字庫）';
+    document.getElementById('pAddBtn').textContent = '✓ 已在單字庫';
+    document.getElementById('pAddBtn').classList.add('added');
+  } else {
+    document.getElementById('pRoman').textContent = '（點擊加入單字庫）';
+    document.getElementById('pMeaning').textContent = word;
+    currentWord = { word, roman: '', pos: '韓文', def: word, source: '逐字稿' };
+  }
+}
+
+// ── 時間格式化 ──
+function formatTime(sec) {
+  const m = Math.floor(sec / 60).toString().padStart(2, '0');
+  const s = Math.floor(sec % 60).toString().padStart(2, '0');
+  return `${m}:${s}`;
+}
+
+// ── 跳轉到指定時間 ──
+function seekToTime(sec, idx) {
+  const audioEl = document.getElementById('audioEl');
+  if (audioEl && audioEl.src) {
+    audioEl.currentTime = sec;
+    audioEl.play();
+    document.getElementById('playBtn').textContent = '⏸';
+  }
+  document.querySelectorAll('.transcript-segment').forEach((s, i) => s.classList.toggle('active', i === idx));
+}
+
+// ── 閱讀器：初始化 ──
+async function initReader() {
+  await loadReaderList();
+  buildWaveform();
 }
 
 // ── UPLOAD TAB SWITCH ──
