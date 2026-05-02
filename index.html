@@ -1877,30 +1877,35 @@ async function loadTranscriptContent(id) {
     }
     contentEl.innerHTML = `
       <div class="transcript-title">${data.title}</div>
-      <div style="font-size:12px;color:var(--ink-muted);margin-bottom:20px">點擊段落可查看中文翻譯與單字標記</div>
       ${paras.map((p, i) => `
-        <div class="transcript-segment" id="tseg${i}" onclick="toggleTranslation(this)">
+        <div class="transcript-segment" id="tseg${i}">
           <div class="seg-ko" data-raw="${p.replace(/"/g,'&quot;')}">${p}</div>
-          <div class="seg-translation" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--border-soft)"></div>
+          <div class="seg-translation" style="display:block;margin-top:6px;font-size:13px;color:var(--ink-muted);line-height:1.6">
+            <span style="color:var(--ink-faint);font-size:11px">翻譯中...</span>
+          </div>
         </div>
       `).join('')}
     `;
   } else {
     contentEl.innerHTML = `
       <div class="transcript-title">${data.title}</div>
-      <div style="font-size:12px;color:var(--ink-muted);margin-bottom:20px">點擊段落可查看中文翻譯與單字標記</div>
       ${segments.map((seg, i) => {
         const start = formatTime(seg.start || 0);
         const end = formatTime(seg.end || 0);
         const text = (seg.text || '').trim();
-        return `<div class="transcript-segment" id="tseg${i}" onclick="handleSegClick(event, ${seg.start || 0}, ${i}, this)">
+        return `<div class="transcript-segment" id="tseg${i}" onclick="handleSegClick(event,${seg.start||0},${i},this)">
           <div class="seg-time">${start} – ${end}</div>
           <div class="seg-ko" data-raw="${text.replace(/"/g,'&quot;')}">${text}</div>
-          <div class="seg-translation" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--border-soft)"></div>
+          <div class="seg-translation" style="display:block;margin-top:6px;font-size:13px;color:var(--ink-muted);line-height:1.6">
+            <span style="color:var(--ink-faint);font-size:11px">翻譯中...</span>
+          </div>
         </div>`;
       }).join('')}
     `;
   }
+
+  // 載入完成後自動分析所有段落
+  setTimeout(() => autoAnalyzeAll(), 300);
 }
 
 // ── AI 分析段落（翻譯 + 單字標記）──
@@ -1912,9 +1917,6 @@ async function analyzeSegment(text, segEl) {
     renderAnalysis(segEl, analysisCache[text]);
     return;
   }
-  const btn = segEl.querySelector('.analyze-btn');
-  if (btn) { btn.textContent = '分析中...'; btn.disabled = true; }
-
   try {
     const res = await fetch('/api/analyze', {
       method: 'POST',
@@ -1927,57 +1929,46 @@ async function analyzeSegment(text, segEl) {
     renderAnalysis(segEl, data);
   } catch (err) {
     const transEl = segEl.querySelector('.seg-translation');
-    if (transEl) transEl.innerHTML = `<span style="color:var(--accent-red);font-size:12px">分析失敗：${err.message}</span>`;
-    if (btn) { btn.textContent = '重試'; btn.disabled = false; }
+    if (transEl) transEl.innerHTML = `<span style="color:var(--ink-faint);font-size:11px">翻譯失敗</span>`;
   }
 }
 
 function renderAnalysis(segEl, data) {
-  // 顯示翻譯
   const transEl = segEl.querySelector('.seg-translation');
   if (transEl && data.translation) {
-    transEl.innerHTML = `<span style="color:var(--ink-muted);font-size:13px;line-height:1.6">${data.translation}</span>`;
+    transEl.innerHTML = `${data.translation}`;
     transEl.style.display = 'block';
   }
-
-  // 更新韓文文字，標記可加入單字庫的單字
   const koEl = segEl.querySelector('.seg-ko');
   if (koEl && data.words?.length > 0) {
     let html = koEl.dataset.raw || koEl.textContent;
     data.words.forEach(w => {
       if (!w.word) return;
       const escaped = w.word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const regex = new RegExp(escaped, 'g');
-      html = html.replace(regex, `<span class="word-tag" data-word="${w.word}" data-roman="${w.romanization||''}" data-pos="${w.pos||'韓文'}" data-def="${w.definition||''}" onclick="showWordPopup(event,this)">${w.word}</span>`);
+      html = html.replace(new RegExp(escaped, 'g'),
+        `<span class="word-tag" data-word="${w.word}" data-roman="${w.romanization||''}" data-pos="${w.pos||'韓文'}" data-def="${w.definition||''}" onclick="showWordPopup(event,this)">${w.word}</span>`);
     });
     if (!koEl.dataset.raw) koEl.dataset.raw = koEl.textContent;
     koEl.innerHTML = html;
   }
-
-  // 隱藏分析按鈕
-  const btn = segEl.querySelector('.analyze-btn');
-  if (btn) btn.style.display = 'none';
 }
 
-// ── 文字渲染成可點擊單字（基礎版，AI 分析前用）──
 function renderClickableText(text) {
   return `<span>${text}</span>`;
 }
 
-// ── 切換翻譯顯示 ──
-function toggleTranslation(segEl) {
-  const transEl = segEl.querySelector('.seg-translation');
-  if (!transEl) return;
-  const koEl = segEl.querySelector('.seg-ko');
-  const rawText = koEl?.dataset.raw || koEl?.textContent || '';
-  if (transEl.dataset.loaded !== 'true') {
-    transEl.dataset.loaded = 'true';
-    transEl.innerHTML = '<span style="color:var(--ink-faint);font-size:12px">翻譯中...</span>';
-    transEl.style.display = 'block';
-    analyzeSegment(rawText, segEl);
-  } else {
-    transEl.style.display = transEl.style.display === 'none' ? 'block' : 'none';
-  }
+// ── 自動分析所有段落 ──
+function autoAnalyzeAll() {
+  const segs = document.querySelectorAll('.transcript-segment');
+  let delay = 0;
+  segs.forEach(seg => {
+    const koEl = seg.querySelector('.seg-ko');
+    const text = koEl?.dataset.raw || koEl?.textContent || '';
+    if (text.match(/[가-힣]/)) {
+      setTimeout(() => analyzeSegment(text, seg), delay);
+      delay += 600; // 每段間隔 0.6 秒，避免 API 過載
+    }
+  });
 }
 
 // ── 查詢單字（點擊時呼叫） ──
