@@ -6,6 +6,162 @@
 <title>한글숲 · 韓文學習工作站</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;600&family=Noto+Sans+KR:wght@300;400;500;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Mono:wght@300;400&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ══════════════════════════════════════════
+//  ★ 請把下面兩行換成你自己的 Supabase 資料
+// ══════════════════════════════════════════
+const SUPABASE_URL  = 'https://xwcgwmbkzqhwmmrkjmpq.supabase.co';          // 例如 https://xwcgwm....supabase.co
+const SUPABASE_KEY  = 'sb_publishable_1bIJ_2mECS_DyYdQMQZa2A_pFX7lOtw';       // 例如 sb_publishable_1bIJ...
+// ══════════════════════════════════════════
+const _supa = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// 目前登入中的使用者
+let currentUser = null;
+
+// 初始化：確認登入狀態
+async function initAuth() {
+  const { data: { session } } = await _supa.auth.getSession();
+  if (session) {
+    currentUser = session.user;
+    showApp();
+    loadVocabFromDB();
+    updateUserUI();
+  } else {
+    showLoginScreen();
+  }
+  // 監聽登入/登出事件
+  _supa.auth.onAuthStateChange((_event, session) => {
+    if (session) {
+      currentUser = session.user;
+      showApp();
+      loadVocabFromDB();
+      updateUserUI();
+    } else {
+      currentUser = null;
+      showLoginScreen();
+    }
+  });
+}
+
+function showLoginScreen() {
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app-wrapper').style.display = 'none';
+}
+function showApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app-wrapper').style.display = 'flex';
+}
+function updateUserUI() {
+  if (!currentUser) return;
+  const name = currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || '學習者';
+  const el = document.querySelector('.user-info .name');
+  if (el) el.textContent = name;
+}
+
+// Google 登入
+async function signInWithGoogle() {
+  const btn = document.getElementById('google-login-btn');
+  btn.textContent = '登入中...';
+  btn.disabled = true;
+  const { error } = await _supa.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.origin }
+  });
+  if (error) { showToast('登入失敗：' + error.message); btn.textContent = '使用 Google 帳號登入'; btn.disabled = false; }
+}
+
+// 登出
+async function signOut() {
+  await _supa.auth.signOut();
+  showToast('已登出');
+}
+
+// ── 單字庫：從資料庫載入 ──
+let dbVocab = [];
+async function loadVocabFromDB() {
+  if (!currentUser) return;
+  const { data, error } = await _supa
+    .from('vocabulary')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) { console.error(error); return; }
+  dbVocab = data || [];
+  renderVocabTable();
+  updateDashboardStats();
+}
+
+// ── 單字庫：新增單字到資料庫 ──
+async function saveWordToDB(wordData) {
+  if (!currentUser) { showToast('請先登入才能儲存單字'); return false; }
+  const { error } = await _supa.from('vocabulary').insert({
+    user_id:       currentUser.id,
+    word:          wordData.word,
+    definition:    wordData.def,
+    romanization:  wordData.roman,
+    pos:           wordData.pos,
+    source:        wordData.source || '逐字稿',
+    srs_interval:  1,
+    srs_repetition: 0,
+    srs_ef:        2.5,
+    next_review_at: new Date().toISOString()
+  });
+  if (error) { showToast('儲存失敗：' + error.message); return false; }
+  await loadVocabFromDB();
+  return true;
+}
+
+// ── 單字庫：刪除單字 ──
+async function deleteWord(id) {
+  const { error } = await _supa.from('vocabulary').delete().eq('id', id);
+  if (error) { showToast('刪除失敗'); return; }
+  await loadVocabFromDB();
+  showToast('已從單字庫移除');
+}
+
+// ── 儀表板統計更新 ──
+function updateDashboardStats() {
+  const total = dbVocab.length;
+  const now = new Date();
+  const dueToday = dbVocab.filter(w => new Date(w.next_review_at) <= now).length;
+  const mastered = dbVocab.filter(w => w.srs_interval >= 21).length;
+  const pct = total > 0 ? Math.round(mastered / total * 100) : 0;
+  const totalEl = document.querySelector('.stat-card.red .stat-value');
+  const dueEl   = document.querySelector('.stat-card.gold .stat-value');
+  const pctEl   = document.querySelector('.stat-card.teal .stat-value');
+  if (totalEl) totalEl.textContent = total;
+  if (dueEl)   dueEl.textContent   = dueToday;
+  if (pctEl)   pctEl.innerHTML     = pct + '<span style="font-size:20px">%</span>';
+}
+
+// ── 單字表格渲染 ──
+function renderVocabTable() {
+  const tbody = document.getElementById('vocabBody');
+  if (!tbody) return;
+  if (dbVocab.length === 0) {
+    tbody.innerHTML = '<div style="padding:32px;text-align:center;color:var(--ink-muted);font-size:14px">單字庫是空的，去閱讀器點擊單字來加入吧！</div>';
+    return;
+  }
+  const now = new Date();
+  tbody.innerHTML = dbVocab.map(w => {
+    const due = new Date(w.next_review_at);
+    const diffDays = Math.ceil((due - now) / 86400000);
+    const nextLabel = diffDays <= 0 ? '今天' : diffDays === 1 ? '明天' : diffDays + '天後';
+    let badge = '';
+    if (w.srs_repetition === 0) badge = '<span class="srs-badge badge-new">新單字</span>';
+    else if (w.srs_interval >= 21) badge = '<span class="srs-badge badge-mastered">已掌握</span>';
+    else badge = '<span class="srs-badge badge-review">複習中</span>';
+    return `<div class="vocab-row">
+      <div><div class="v-word">${w.word}</div></div>
+      <div><div class="v-roman">${w.romanization || ''}</div></div>
+      <div><div class="v-meaning">${w.definition || ''}</div></div>
+      <div><div class="v-source">${w.source || ''}</div></div>
+      <div><div class="v-next">${nextLabel}</div></div>
+      <div style="display:flex;align-items:center;gap:8px">${badge}<button onclick="deleteWord('${w.id}')" style="background:none;border:none;cursor:pointer;color:var(--ink-faint);font-size:14px;padding:2px 4px" title="刪除">✕</button></div>
+    </div>`;
+  }).join('');
+}
+</script>
 <style>
 :root {
   --cream: #F5F0E8;
@@ -730,6 +886,22 @@ body {
 </style>
 </head>
 <body>
+<div id="login-screen" style="display:none;position:fixed;inset:0;z-index:9999;background:var(--cream);flex-direction:column;align-items:center;justify-content:center;gap:24px">
+  <div style="text-align:center">
+    <div style="font-family:'Noto Serif KR',serif;font-size:42px;font-weight:600;color:var(--ink);letter-spacing:0.05em;margin-bottom:8px">한글숲</div>
+    <div style="font-family:'DM Serif Display',serif;font-size:13px;color:var(--ink-muted);letter-spacing:0.15em">HANGEUL FOREST · 韓文學習工作站</div>
+  </div>
+  <div style="background:var(--warm-white);border:1px solid var(--border);border-radius:16px;padding:36px 40px;text-align:center;max-width:360px;width:90%">
+    <div style="font-size:15px;color:var(--ink-soft);margin-bottom:24px;line-height:1.6">登入後，你的單字與學習記錄<br>將永久儲存在雲端</div>
+    <button id="google-login-btn" onclick="signInWithGoogle()" style="width:100%;background:var(--ink);color:var(--cream);border:none;border-radius:10px;padding:13px 20px;font-family:'Noto Sans KR',sans-serif;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:opacity 0.15s">
+      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20H24v8h11.3C33.6 33.1 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.5 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c11 0 20-9 20-20 0-1.3-.1-2.7-.4-4z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.5 16 19 12 24 12c3 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.5 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-1.9 13.5-5l-6.2-5.2C29.4 35.6 26.8 36 24 36c-5.2 0-9.6-2.9-11.7-7.1l-6.5 5C9.6 39.6 16.3 44 24 44z"/><path fill="#1976D2" d="M43.6 20H24v8h11.3c-.9 2.5-2.6 4.6-4.8 6l6.2 5.2C40.6 35.6 44 30.2 44 24c0-1.3-.1-2.7-.4-4z"/></svg>
+      使用 Google 帳號登入
+    </button>
+    <div style="margin-top:16px;font-size:12px;color:var(--ink-muted)">登入即表示你同意我們僅用你的帳號識別你的學習資料</div>
+  </div>
+</div>
+
+<div id="app-wrapper" style="display:none">
 <div class="app">
 
 <!-- ── SIDEBAR ── -->
@@ -771,6 +943,7 @@ body {
         <div class="level">TOPIK 1 → 目標 2級</div>
       </div>
     </div>
+    <button onclick="signOut()" style="margin-top:10px;width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:rgba(245,240,232,0.5);border-radius:6px;padding:6px;font-size:11px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:all 0.15s" onmouseover="this.style.color='var(--cream)'" onmouseout="this.style.color='rgba(245,240,232,0.5)'">登出</button>
   </div>
 </aside>
 
@@ -1236,7 +1409,9 @@ body {
   </div>
 
 </main>
-</div>
+
+</div><!-- end app -->
+</div><!-- end app-wrapper -->
 
 <!-- Word Popup -->
 <div class="word-popup" id="wordPopup">
@@ -1353,14 +1528,22 @@ function showWordPopup(e, el) {
   popup.style.pointerEvents = 'all';
 }
 
-function addToVocab() {
+async function addToVocab() {
   if(!currentWord) return;
-  addedWords.add(currentWord.word);
   const btn = document.getElementById('pAddBtn');
-  btn.textContent = '✓ 已加入單字庫';
-  btn.classList.add('added');
-  showToast('✦ 已將「' + currentWord.word + '」加入單字庫');
-  setTimeout(() => { document.getElementById('wordPopup').style.display = 'none'; }, 800);
+  btn.textContent = '儲存中...';
+  btn.disabled = true;
+  const ok = await saveWordToDB(currentWord);
+  if (ok) {
+    addedWords.add(currentWord.word);
+    btn.textContent = '✓ 已加入單字庫';
+    btn.classList.add('added');
+    showToast('✦ 已將「' + currentWord.word + '」加入單字庫');
+    setTimeout(() => { document.getElementById('wordPopup').style.display = 'none'; }, 800);
+  } else {
+    btn.textContent = '＋ 加入單字庫';
+    btn.disabled = false;
+  }
 }
 
 document.addEventListener('click', () => { document.getElementById('wordPopup').style.display = 'none'; });
@@ -1454,6 +1637,9 @@ function showToast(msg) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
 }
+
+// ── 啟動：初始化登入狀態 ──
+window.addEventListener('DOMContentLoaded', initAuth);
 </script>
 </body>
 </html>
