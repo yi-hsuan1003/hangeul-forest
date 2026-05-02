@@ -1802,7 +1802,10 @@ async function loadReaderList() {
   if (!currentUser) return;
   const listEl = document.getElementById('reader-resource-list');
   if (!listEl) return;
-  const { data, error } = await _supa.from('transcripts').select('id,title,file_type,duration_seconds,status').order('created_at', { ascending: false });
+  const { data, error } = await _supa
+    .from('transcripts')
+    .select('id,title,file_type,duration_seconds,status')
+    .eq('user_id', currentUser.id);
   if (error || !data || data.length === 0) {
     listEl.innerHTML = '<div style="font-size:12px;color:var(--ink-muted);padding:8px 0">還沒有教材，去上傳吧！</div>';
     return;
@@ -2046,7 +2049,10 @@ async function handleAudioFile(file) {
 // ── 載入已上傳教材列表 ──
 async function loadTranscriptList() {
   if (!currentUser) return;
-  const { data, error } = await _supa.from('transcripts').select('*').order('created_at', { ascending: false });
+  const { data, error } = await _supa
+    .from('transcripts')
+    .select('*')
+    .eq('user_id', currentUser.id);
   if (error) return;
   const listEl = document.getElementById('transcript-list');
   if (!listEl) return;
