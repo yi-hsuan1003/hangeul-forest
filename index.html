@@ -878,6 +878,9 @@ body {
 }
 .toast.show { transform: translateY(0); opacity: 1; }
 
+.resource-list-item:hover .del-btn { opacity: 1 !important; }
+.resource-list-item:hover .del-btn:hover { color: var(--accent-red) !important; }
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -1797,6 +1800,20 @@ async function handleYoutube() {
   }
 }
 
+// ── 刪除教材 ──
+async function deleteTranscript(id, title) {
+  if (!confirm(`確定要刪除「${title}」嗎？\n此操作無法復原。`)) return;
+  const { error } = await _supa.from('transcripts').delete().eq('id', id);
+  if (error) { showToast('刪除失敗：' + error.message); return; }
+  showToast('已刪除「' + title + '」');
+  document.getElementById('reader-content').innerHTML = `
+    <div style="text-align:center;padding:60px 20px;color:var(--ink-muted)">
+      <div style="font-size:32px;margin-bottom:16px">📖</div>
+      <div style="font-size:15px">從左側選擇教材開始閱讀</div>
+    </div>`;
+  await loadReaderList();
+}
+
 // ── 閱讀器：載入教材列表 ──
 async function loadReaderList() {
   if (!currentUser) return;
@@ -1814,10 +1831,13 @@ async function loadReaderList() {
     const icon = t.file_type === 'pdf' ? '📖' : t.file_type === 'youtube' ? '▶' : t.file_type === 'video' ? '🎬' : '🎵';
     const mins = Math.floor((t.duration_seconds || 0) / 60);
     const dur = mins > 0 ? `${mins} 分鐘` : '';
-    return `<div class="resource-list-item" id="res-${t.id}" onclick="loadTranscriptContent('${t.id}')">
-      <div class="res-icon">${icon}</div>
-      <div class="res-title">${t.title}</div>
-      <div class="res-meta">${t.file_type?.toUpperCase()} ${dur ? '· ' + dur : ''} · 已完成</div>
+    return `<div class="resource-list-item" id="res-${t.id}" style="position:relative">
+      <div onclick="loadTranscriptContent('${t.id}')" style="flex:1;cursor:pointer">
+        <div class="res-icon">${icon}</div>
+        <div class="res-title">${t.title}</div>
+        <div class="res-meta">${t.file_type?.toUpperCase()} ${dur ? '· ' + dur : ''} · 已完成</div>
+      </div>
+      <button onclick="deleteTranscript('${t.id}','${t.title}')" style="position:absolute;top:8px;right:8px;background:none;border:none;cursor:pointer;color:var(--ink-faint);font-size:14px;padding:2px 4px;opacity:0;transition:opacity 0.15s" class="del-btn" title="刪除">✕</button>
     </div>`;
   }).join('');
 }
