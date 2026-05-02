@@ -89,6 +89,7 @@ async function loadVocabFromDB() {
   dbVocab = data || [];
   renderVocabTable();
   updateDashboardStats();
+  await loadTranscriptList();
 }
 
 // ── 單字庫：新增單字到資料庫 ──
@@ -1999,13 +2000,6 @@ function showToast(msg) {
 window.addEventListener('DOMContentLoaded', () => {
   initAuth();
 });
-
-// 登入後額外載入教材列表
-const _origLoadVocab = loadVocabFromDB;
-async function loadVocabFromDB() {
-  await _origLoadVocab();
-  await loadTranscriptList();
-}
 </script>
 </body>
 </html>
