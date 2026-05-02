@@ -1388,23 +1388,79 @@ body {
   <div id="page-upload" class="page">
     <div class="dashboard">
       <div class="section-heading" style="margin-bottom:24px">上傳教材</div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:800px">
-        <div style="background:var(--cream);border:2px dashed var(--border);border-radius:14px;padding:32px 24px;text-align:center;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='var(--ink-soft)'" onmouseout="this.style.borderColor='var(--border)'" onclick="showToast('📖 PDF 上傳功能即將上線！')">
-          <div style="font-size:36px;margin-bottom:12px">📖</div>
-          <div style="font-family:'DM Serif Display',serif;font-size:16px;color:var(--ink);margin-bottom:6px">PDF 課本</div>
-          <div style="font-size:12px;color:var(--ink-muted)">自動解析文字<br>支援多頁課本</div>
+
+      <!-- Upload tabs -->
+      <div style="display:flex;gap:8px;margin-bottom:24px">
+        <button class="filter-chip active" id="tab-audio" onclick="switchUploadTab('audio',this)">🎵 音檔 / 影片</button>
+        <button class="filter-chip" id="tab-pdf" onclick="switchUploadTab('pdf',this)">📖 PDF 課本</button>
+        <button class="filter-chip" id="tab-youtube" onclick="switchUploadTab('youtube',this)">▶ YouTube 連結</button>
+      </div>
+
+      <!-- Audio/Video Upload -->
+      <div id="upload-audio" class="upload-panel">
+        <div id="audio-dropzone" style="background:var(--cream);border:2px dashed var(--border);border-radius:14px;padding:48px 24px;text-align:center;cursor:pointer;transition:all 0.2s;max-width:600px"
+          onclick="document.getElementById('audio-file-input').click()"
+          ondragover="event.preventDefault();this.style.borderColor='var(--accent-teal)'"
+          ondragleave="this.style.borderColor='var(--border)'"
+          ondrop="handleAudioDrop(event)">
+          <div style="font-size:40px;margin-bottom:12px">🎵</div>
+          <div style="font-family:'DM Serif Display',serif;font-size:18px;color:var(--ink);margin-bottom:8px">拖放音檔或影片到這裡</div>
+          <div style="font-size:13px;color:var(--ink-muted);margin-bottom:16px">支援 MP3、MP4、M4A、WAV、WEBM（最大 25MB）</div>
+          <button class="btn-primary" style="pointer-events:none">選擇檔案</button>
+          <input type="file" id="audio-file-input" accept="audio/*,video/*" style="display:none" onchange="handleAudioFile(this.files[0])">
         </div>
-        <div style="background:var(--cream);border:2px dashed var(--border);border-radius:14px;padding:32px 24px;text-align:center;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='var(--ink-soft)'" onmouseout="this.style.borderColor='var(--border)'" onclick="showToast('🎬 影音上傳功能即將上線！')">
-          <div style="font-size:36px;margin-bottom:12px">🎬</div>
-          <div style="font-family:'DM Serif Display',serif;font-size:16px;color:var(--ink);margin-bottom:6px">影片 / 音頻</div>
-          <div style="font-size:12px;color:var(--ink-muted)">Whisper 自動轉錄<br>生成互動逐字稿</div>
+
+        <!-- Progress area -->
+        <div id="upload-progress" style="display:none;max-width:600px;margin-top:20px">
+          <div style="background:var(--cream);border:1px solid var(--border);border-radius:12px;padding:24px">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+              <div id="progress-icon" style="font-size:24px">⏳</div>
+              <div>
+                <div id="progress-filename" style="font-size:14px;font-weight:500;color:var(--ink)"></div>
+                <div id="progress-status" style="font-size:12px;color:var(--ink-muted);margin-top:2px">準備上傳...</div>
+              </div>
+            </div>
+            <div style="background:var(--parchment);border-radius:4px;height:6px;overflow:hidden">
+              <div id="progress-bar" style="height:100%;background:var(--accent-teal);border-radius:4px;width:0%;transition:width 0.3s ease"></div>
+            </div>
+          </div>
         </div>
-        <div style="background:var(--cream);border:2px dashed var(--border);border-radius:14px;padding:32px 24px;text-align:center;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='var(--ink-soft)'" onmouseout="this.style.borderColor='var(--border)'" onclick="showToast('🌐 Web Clipper 即將上線！')">
-          <div style="font-size:36px;margin-bottom:12px">🌐</div>
-          <div style="font-family:'DM Serif Display',serif;font-size:16px;color:var(--ink);margin-bottom:6px">網頁擷取</div>
-          <div style="font-size:12px;color:var(--ink-muted)">收集線上韓文文章<br>一鍵加入學習庫</div>
+
+        <!-- 已上傳的教材列表 -->
+        <div style="max-width:600px;margin-top:28px">
+          <div class="section-heading" style="margin-bottom:14px">已上傳的教材</div>
+          <div id="transcript-list">
+            <div style="padding:24px;text-align:center;color:var(--ink-muted);font-size:13px;background:var(--cream);border:1px solid var(--border);border-radius:10px">
+              還沒有上傳任何教材
+            </div>
+          </div>
         </div>
       </div>
+
+      <!-- PDF Upload -->
+      <div id="upload-pdf" class="upload-panel" style="display:none">
+        <div style="background:var(--cream);border:2px dashed var(--border);border-radius:14px;padding:48px 24px;text-align:center;cursor:pointer;transition:all 0.2s;max-width:600px"
+          onclick="document.getElementById('pdf-file-input').click()">
+          <div style="font-size:40px;margin-bottom:12px">📖</div>
+          <div style="font-family:'DM Serif Display',serif;font-size:18px;color:var(--ink);margin-bottom:8px">上傳 PDF 課本</div>
+          <div style="font-size:13px;color:var(--ink-muted);margin-bottom:16px">自動解析文字，生成互動式閱讀頁面</div>
+          <button class="btn-primary" style="pointer-events:none">選擇 PDF</button>
+          <input type="file" id="pdf-file-input" accept=".pdf" style="display:none" onchange="showToast('📖 PDF 解析功能即將上線！')">
+        </div>
+      </div>
+
+      <!-- YouTube -->
+      <div id="upload-youtube" class="upload-panel" style="display:none">
+        <div style="background:var(--cream);border:1px solid var(--border);border-radius:14px;padding:32px;max-width:600px">
+          <div style="font-size:40px;margin-bottom:12px;text-align:center">▶</div>
+          <div style="font-family:'DM Serif Display',serif;font-size:18px;color:var(--ink);margin-bottom:16px;text-align:center">貼上 YouTube 連結</div>
+          <div style="display:flex;gap:10px">
+            <input id="youtube-url" class="search-box" type="text" placeholder="https://www.youtube.com/watch?v=...">
+            <button class="btn-primary" onclick="showToast('▶ YouTube 轉錄功能即將上線！')">轉錄</button>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -1628,7 +1684,142 @@ function endQuiz() {
   document.getElementById('quizPlay').classList.remove('active');
 }
 
-// ── TOAST ──
+// ── UPLOAD TAB SWITCH ──
+function switchUploadTab(tab, el) {
+  document.querySelectorAll('.upload-panel').forEach(p => p.style.display = 'none');
+  document.querySelectorAll('#page-upload .filter-chip').forEach(c => c.classList.remove('active'));
+  document.getElementById('upload-' + tab).style.display = 'block';
+  el.classList.add('active');
+}
+
+// ── AUDIO UPLOAD & STT ──
+function handleAudioDrop(e) {
+  e.preventDefault();
+  document.getElementById('audio-dropzone').style.borderColor = 'var(--border)';
+  const file = e.dataTransfer.files[0];
+  if (file) handleAudioFile(file);
+}
+
+async function handleAudioFile(file) {
+  if (!currentUser) { showToast('請先登入'); return; }
+  if (!file) return;
+  const maxSize = 25 * 1024 * 1024;
+  if (file.size > maxSize) { showToast('檔案超過 25MB 限制'); return; }
+
+  const progressEl = document.getElementById('upload-progress');
+  const filenameEl = document.getElementById('progress-filename');
+  const statusEl   = document.getElementById('progress-status');
+  const barEl      = document.getElementById('progress-bar');
+  const iconEl     = document.getElementById('progress-icon');
+
+  progressEl.style.display = 'block';
+  filenameEl.textContent = file.name;
+  statusEl.textContent = '上傳中...';
+  barEl.style.width = '10%';
+  iconEl.textContent = '⬆️';
+
+  try {
+    // 1. 上傳到 Supabase Storage
+    const filePath = `${currentUser.id}/${Date.now()}_${file.name}`;
+    const { error: uploadError } = await _supa.storage.from('media').upload(filePath, file);
+    if (uploadError) throw new Error('上傳失敗：' + uploadError.message);
+
+    barEl.style.width = '35%';
+    statusEl.textContent = 'Whisper 轉錄中（可能需要 1–3 分鐘）...';
+    iconEl.textContent = '🎙️';
+
+    // 2. 取得公開 URL
+    const { data: urlData } = _supa.storage.from('media').getPublicUrl(filePath);
+    const fileUrl = urlData.publicUrl;
+
+    // 3. 呼叫 Vercel Function 轉錄
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const transcribeRes = await fetch('/api/transcribe', {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!transcribeRes.ok) {
+      const err = await transcribeRes.json();
+      throw new Error(err.error || '轉錄失敗');
+    }
+
+    barEl.style.width = '80%';
+    statusEl.textContent = '儲存逐字稿...';
+    iconEl.textContent = '💾';
+
+    const transcriptData = await transcribeRes.json();
+
+    // 4. 存入 Supabase transcripts 表
+    const { error: dbError } = await _supa.from('transcripts').insert({
+      user_id: currentUser.id,
+      title: file.name.replace(/\.[^/.]+$/, ''),
+      file_url: fileUrl,
+      file_type: file.type.startsWith('video') ? 'video' : 'audio',
+      status: 'done',
+      transcript_json: transcriptData,
+      duration_seconds: Math.round(transcriptData.segments?.reduce((a, s) => Math.max(a, s.end || 0), 0) || 0)
+    });
+    if (dbError) throw new Error('儲存失敗：' + dbError.message);
+
+    barEl.style.width = '100%';
+    statusEl.textContent = '完成！';
+    iconEl.textContent = '✅';
+    showToast('🎉 轉錄完成！去閱讀器查看逐字稿');
+    await loadTranscriptList();
+
+    setTimeout(() => { progressEl.style.display = 'none'; barEl.style.width = '0%'; }, 3000);
+
+  } catch (err) {
+    iconEl.textContent = '❌';
+    statusEl.textContent = '失敗：' + err.message;
+    barEl.style.background = 'var(--accent-red)';
+    showToast('上傳失敗：' + err.message);
+  }
+}
+
+// ── 載入已上傳教材列表 ──
+async function loadTranscriptList() {
+  if (!currentUser) return;
+  const { data, error } = await _supa.from('transcripts').select('*').order('created_at', { ascending: false });
+  if (error) return;
+  const listEl = document.getElementById('transcript-list');
+  if (!listEl) return;
+  if (!data || data.length === 0) {
+    listEl.innerHTML = '<div style="padding:24px;text-align:center;color:var(--ink-muted);font-size:13px;background:var(--cream);border:1px solid var(--border);border-radius:10px">還沒有上傳任何教材</div>';
+    return;
+  }
+  listEl.innerHTML = data.map(t => {
+    const icon = t.file_type === 'video' ? '🎬' : '🎵';
+    const mins = Math.floor((t.duration_seconds || 0) / 60);
+    const secs = (t.duration_seconds || 0) % 60;
+    const dur = mins > 0 ? `${mins}分${secs}秒` : `${secs}秒`;
+    const statusBadge = t.status === 'done'
+      ? '<span style="font-size:10px;padding:2px 8px;border-radius:10px;background:var(--accent-teal-soft);color:var(--accent-teal)">已完成</span>'
+      : '<span style="font-size:10px;padding:2px 8px;border-radius:10px;background:var(--accent-gold-soft);color:var(--accent-gold)">處理中</span>';
+    return `<div style="background:var(--cream);border:1px solid var(--border);border-radius:10px;padding:14px 18px;display:flex;align-items:center;gap:12px;margin-bottom:8px;cursor:pointer;transition:all 0.15s" onmouseover="this.style.borderColor='var(--ink-faint)'" onmouseout="this.style.borderColor='var(--border)'" onclick="openTranscript('${t.id}')">
+      <div style="font-size:24px">${icon}</div>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:500;color:var(--ink)">${t.title}</div>
+        <div style="font-size:11px;color:var(--ink-muted);margin-top:3px">${dur} · ${new Date(t.created_at).toLocaleDateString('zh-TW')}</div>
+      </div>
+      ${statusBadge}
+    </div>`;
+  }).join('');
+}
+
+// ── 開啟逐字稿（切換到閱讀器並載入） ──
+function openTranscript(id) {
+  showPage('reader', document.querySelector('.nav-item:nth-child(2)'));
+  showToast('載入逐字稿中...');
+}
+
+// ── 初始化時載入教材列表 ──
+const _origShowApp = showApp;
+
+
 let toastTimer = null;
 function showToast(msg) {
   const t = document.getElementById('toast');
@@ -1639,7 +1830,16 @@ function showToast(msg) {
 }
 
 // ── 啟動：初始化登入狀態 ──
-window.addEventListener('DOMContentLoaded', initAuth);
+window.addEventListener('DOMContentLoaded', () => {
+  initAuth();
+});
+
+// 登入後額外載入教材列表
+const _origLoadVocab = loadVocabFromDB;
+async function loadVocabFromDB() {
+  await _origLoadVocab();
+  await loadTranscriptList();
+}
 </script>
 </body>
 </html>
