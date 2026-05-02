@@ -1728,7 +1728,7 @@ async function handlePdfFile(file) {
   iconEl.textContent = '⬆️';
 
   try {
-    const filePath = `${currentUser.id}/${Date.now()}_${file.name}`;
+    const filePath = `${currentUser.id}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
     const { error: uploadError } = await _supa.storage.from('media').upload(filePath, file);
     if (uploadError) throw new Error('上傳失敗：' + uploadError.message);
 
@@ -1873,7 +1873,8 @@ async function handleAudioFile(file) {
 
   try {
     // 1. 直接上傳到 Supabase Storage（無大小限制）
-    const filePath = `${currentUser.id}/${Date.now()}_${file.name}`;
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const filePath = `${currentUser.id}/${Date.now()}_${safeName}`;
     const { error: uploadError } = await _supa.storage.from('media').upload(filePath, file, {
       cacheControl: '3600',
       upsert: false
