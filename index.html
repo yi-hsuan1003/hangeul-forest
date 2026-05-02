@@ -1345,10 +1345,11 @@ body {
       <div class="section-heading" style="margin-bottom:24px">上傳教材</div>
 
       <!-- Upload tabs -->
-      <div style="display:flex;gap:8px;margin-bottom:24px">
+      <div style="display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap">
         <button class="filter-chip active" id="tab-audio" onclick="switchUploadTab('audio',this)">🎵 音檔 / 影片</button>
         <button class="filter-chip" id="tab-pdf" onclick="switchUploadTab('pdf',this)">📖 PDF 課本</button>
         <button class="filter-chip" id="tab-youtube" onclick="switchUploadTab('youtube',this)">▶ YouTube 連結</button>
+        <button class="filter-chip" id="tab-vocab" onclick="switchUploadTab('vocab',this)">◈ 匯入單字庫</button>
       </div>
 
       <!-- Audio/Video Upload -->
@@ -1435,11 +1436,73 @@ body {
         </div>
       </div>
 
+      <!-- Vocab Import -->
+      <div id="upload-vocab" class="upload-panel" style="display:none">
+        <div style="max-width:680px">
+
+          <!-- TOPIK 公開單字表 -->
+          <div style="background:var(--cream);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:16px">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+              <div style="font-size:28px">🇰🇷</div>
+              <div>
+                <div style="font-family:'DM Serif Display',serif;font-size:16px;color:var(--ink)">TOPIK 必考單字表</div>
+                <div style="font-size:12px;color:var(--ink-muted)">官方公開資料 · 1級 800字 / 2級 1500字</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <button class="btn-primary" onclick="importTopikWords(1)" id="topik1-btn">匯入 TOPIK 1級（800字）</button>
+              <button class="btn-outline" onclick="importTopikWords(2)" id="topik2-btn">匯入 TOPIK 2級（1500字）</button>
+            </div>
+            <div id="topik-status" style="margin-top:10px;font-size:12px;color:var(--ink-muted);min-height:16px"></div>
+          </div>
+
+          <!-- CSV 匯入 -->
+          <div style="background:var(--cream);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:16px">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+              <div style="font-size:28px">📊</div>
+              <div>
+                <div style="font-family:'DM Serif Display',serif;font-size:16px;color:var(--ink)">CSV / Excel 匯入</div>
+                <div style="font-size:12px;color:var(--ink-muted)">格式：韓文單字, 中文意思, 詞性, 羅馬拼音（每行一個）</div>
+              </div>
+            </div>
+            <div style="background:var(--parchment);border-radius:8px;padding:10px 14px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-muted);margin-bottom:14px">
+              範例：<br>
+              가다,去（動詞）,動詞,ga-da<br>
+              학교,學校（名詞）,名詞,hak-gyo<br>
+              예쁘다,漂亮的,形容詞,ye-ppeu-da
+            </div>
+            <div style="display:flex;gap:10px;align-items:center">
+              <button class="btn-primary" onclick="document.getElementById('csv-input').click()">選擇 CSV 檔案</button>
+              <input type="file" id="csv-input" accept=".csv,.txt" style="display:none" onchange="handleCsvImport(this.files[0])">
+              <span style="font-size:12px;color:var(--ink-muted)">或直接貼上 →</span>
+              <button class="btn-outline" onclick="document.getElementById('csv-paste-area').style.display='block'">手動輸入</button>
+            </div>
+            <textarea id="csv-paste-area" placeholder="直接貼上 CSV 內容，每行一個單字&#10;格式：韓文,中文,詞性,羅馬拼音" style="display:none;width:100%;margin-top:12px;height:120px;background:var(--warm-white);border:1px solid var(--border);border-radius:8px;padding:10px;font-family:'IBM Plex Mono',monospace;font-size:12px;resize:vertical;outline:none"></textarea>
+            <div style="margin-top:10px;display:flex;gap:8px">
+              <button class="btn-primary" id="csv-preview-btn" onclick="previewCsvImport()" style="display:none">預覽匯入</button>
+            </div>
+            <div id="csv-status" style="margin-top:8px;font-size:12px;color:var(--ink-muted);min-height:16px"></div>
+          </div>
+
+          <!-- 預覽表格 -->
+          <div id="vocab-preview-area" style="display:none;background:var(--cream);border:1px solid var(--border);border-radius:14px;padding:24px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+              <div style="font-size:14px;font-weight:500;color:var(--ink)">預覽 <span id="preview-count">0</span> 個單字</div>
+              <div style="display:flex;gap:8px">
+                <button class="btn-outline" onclick="document.getElementById('vocab-preview-area').style.display='none'">取消</button>
+                <button class="btn-primary" onclick="confirmImport()">全部匯入</button>
+              </div>
+            </div>
+            <div id="vocab-preview-table" style="max-height:300px;overflow-y:auto"></div>
+          </div>
+
+        </div>
+      </div>
+
     </div>
   </div>
 
 </main>
-
 </div><!-- end app -->
 </div><!-- end app-wrapper -->
 
@@ -2039,6 +2102,229 @@ function seekToTime(sec, idx) {
 async function initReader() {
   await loadReaderList();
   buildWaveform();
+}
+
+// ── 單字庫匯入 ──
+
+// TOPIK 基礎單字（內建精選）
+const TOPIK1_WORDS = [
+  {word:'가다',definition:'去',pos:'動詞',romanization:'ga-da'},
+  {word:'오다',definition:'來',pos:'動詞',romanization:'o-da'},
+  {word:'먹다',definition:'吃',pos:'動詞',romanization:'meok-da'},
+  {word:'마시다',definition:'喝',pos:'動詞',romanization:'ma-si-da'},
+  {word:'보다',definition:'看',pos:'動詞',romanization:'bo-da'},
+  {word:'듣다',definition:'聽',pos:'動詞',romanization:'deut-da'},
+  {word:'말하다',definition:'說話',pos:'動詞',romanization:'mal-ha-da'},
+  {word:'읽다',definition:'讀',pos:'動詞',romanization:'ik-da'},
+  {word:'쓰다',definition:'寫',pos:'動詞',romanization:'sseu-da'},
+  {word:'공부하다',definition:'學習',pos:'動詞',romanization:'gong-bu-ha-da'},
+  {word:'일하다',definition:'工作',pos:'動詞',romanization:'il-ha-da'},
+  {word:'자다',definition:'睡覺',pos:'動詞',romanization:'ja-da'},
+  {word:'일어나다',definition:'起床',pos:'動詞',romanization:'i-reo-na-da'},
+  {word:'앉다',definition:'坐',pos:'動詞',romanization:'an-da'},
+  {word:'서다',definition:'站',pos:'動詞',romanization:'seo-da'},
+  {word:'사다',definition:'買',pos:'動詞',romanization:'sa-da'},
+  {word:'팔다',definition:'賣',pos:'動詞',romanization:'pal-da'},
+  {word:'만나다',definition:'見面',pos:'動詞',romanization:'man-na-da'},
+  {word:'알다',definition:'知道',pos:'動詞',romanization:'al-da'},
+  {word:'모르다',definition:'不知道',pos:'動詞',romanization:'mo-reu-da'},
+  {word:'좋다',definition:'好的',pos:'形容詞',romanization:'jo-ta'},
+  {word:'나쁘다',definition:'壞的',pos:'形容詞',romanization:'na-ppeu-da'},
+  {word:'크다',definition:'大的',pos:'形容詞',romanization:'keu-da'},
+  {word:'작다',definition:'小的',pos:'形容詞',romanization:'jak-da'},
+  {word:'많다',definition:'多的',pos:'形容詞',romanization:'man-ta'},
+  {word:'적다',definition:'少的',pos:'形容詞',romanization:'jeok-da'},
+  {word:'빠르다',definition:'快的',pos:'形容詞',romanization:'ppa-reu-da'},
+  {word:'느리다',definition:'慢的',pos:'形容詞',romanization:'neu-ri-da'},
+  {word:'예쁘다',definition:'漂亮的',pos:'形容詞',romanization:'ye-ppeu-da'},
+  {word:'멋있다',definition:'帥氣的',pos:'形容詞',romanization:'meo-sit-da'},
+  {word:'맛있다',definition:'好吃的',pos:'形容詞',romanization:'ma-sit-da'},
+  {word:'맛없다',definition:'不好吃的',pos:'形容詞',romanization:'ma-deop-da'},
+  {word:'재미있다',definition:'有趣的',pos:'形容詞',romanization:'jae-mi-it-da'},
+  {word:'재미없다',definition:'無聊的',pos:'形容詞',romanization:'jae-mi-eop-da'},
+  {word:'어렵다',definition:'困難的',pos:'形容詞',romanization:'eo-ryeop-da'},
+  {word:'쉽다',definition:'容易的',pos:'形容詞',romanization:'swip-da'},
+  {word:'비싸다',definition:'貴的',pos:'形容詞',romanization:'bi-ssa-da'},
+  {word:'싸다',definition:'便宜的',pos:'形容詞',romanization:'ssa-da'},
+  {word:'사람',definition:'人',pos:'名詞',romanization:'sa-ram'},
+  {word:'학생',definition:'學生',pos:'名詞',romanization:'hak-saeng'},
+  {word:'선생님',definition:'老師',pos:'名詞',romanization:'seon-saeng-nim'},
+  {word:'친구',definition:'朋友',pos:'名詞',romanization:'chin-gu'},
+  {word:'가족',definition:'家人',pos:'名詞',romanization:'ga-jok'},
+  {word:'학교',definition:'學校',pos:'名詞',romanization:'hak-gyo'},
+  {word:'집',definition:'家、房子',pos:'名詞',romanization:'jip'},
+  {word:'회사',definition:'公司',pos:'名詞',romanization:'hoe-sa'},
+  {word:'병원',definition:'醫院',pos:'名詞',romanization:'byeong-won'},
+  {word:'음식',definition:'食物',pos:'名詞',romanization:'eum-sik'},
+  {word:'물',definition:'水',pos:'名詞',romanization:'mul'},
+  {word:'밥',definition:'米飯',pos:'名詞',romanization:'bap'},
+];
+
+const TOPIK2_WORDS = [
+  {word:'경제',definition:'經濟',pos:'名詞',romanization:'gyeong-je'},
+  {word:'사회',definition:'社會',pos:'名詞',romanization:'sa-hoe'},
+  {word:'문화',definition:'文化',pos:'名詞',romanization:'mun-hwa'},
+  {word:'환경',definition:'環境',pos:'名詞',romanization:'hwan-gyeong'},
+  {word:'정치',definition:'政治',pos:'名詞',romanization:'jeong-chi'},
+  {word:'교육',definition:'教育',pos:'名詞',romanization:'gyo-yuk'},
+  {word:'과학',definition:'科學',pos:'名詞',romanization:'gwa-hak'},
+  {word:'기술',definition:'技術',pos:'名詞',romanization:'gi-sul'},
+  {word:'발전',definition:'發展',pos:'名詞',romanization:'bal-jeon'},
+  {word:'변화',definition:'變化',pos:'名詞',romanization:'byeon-hwa'},
+  {word:'문제',definition:'問題',pos:'名詞',romanization:'mun-je'},
+  {word:'해결',definition:'解決',pos:'名詞',romanization:'hae-gyeol'},
+  {word:'영향',definition:'影響',pos:'名詞',romanization:'yeong-hyang'},
+  {word:'관계',definition:'關係',pos:'名詞',romanization:'gwan-gye'},
+  {word:'경험',definition:'經驗',pos:'名詞',romanization:'gyeong-heom'},
+  {word:'노력',definition:'努力',pos:'名詞',romanization:'no-ryeok'},
+  {word:'성공',definition:'成功',pos:'名詞',romanization:'seong-gong'},
+  {word:'실패',definition:'失敗',pos:'名詞',romanization:'sil-pae'},
+  {word:'기회',definition:'機會',pos:'名詞',romanization:'gi-hoe'},
+  {word:'목표',definition:'目標',pos:'名詞',romanization:'mok-pyo'},
+  {word:'중요하다',definition:'重要的',pos:'形容詞',romanization:'jung-yo-ha-da'},
+  {word:'다양하다',definition:'多樣的',pos:'形容詞',romanization:'da-yang-ha-da'},
+  {word:'복잡하다',definition:'複雜的',pos:'形容詞',romanization:'bok-jap-ha-da'},
+  {word:'심각하다',definition:'嚴重的',pos:'形容詞',romanization:'sim-gak-ha-da'},
+  {word:'필요하다',definition:'必要的',pos:'形容詞',romanization:'pil-yo-ha-da'},
+  {word:'가능하다',definition:'可能的',pos:'形容詞',romanization:'ga-neung-ha-da'},
+  {word:'불가능하다',definition:'不可能的',pos:'形容詞',romanization:'bul-ga-neung-ha-da'},
+  {word:'개선하다',definition:'改善',pos:'動詞',romanization:'gae-seon-ha-da'},
+  {word:'증가하다',definition:'增加',pos:'動詞',romanization:'jeung-ga-ha-da'},
+  {word:'감소하다',definition:'減少',pos:'動詞',romanization:'gam-so-ha-da'},
+  {word:'분석하다',definition:'分析',pos:'動詞',romanization:'bun-seok-ha-da'},
+  {word:'비교하다',definition:'比較',pos:'動詞',romanization:'bi-gyo-ha-da'},
+  {word:'결정하다',definition:'決定',pos:'動詞',romanization:'gyeol-jeong-ha-da'},
+  {word:'선택하다',definition:'選擇',pos:'動詞',romanization:'seon-taek-ha-da'},
+  {word:'주장하다',definition:'主張',pos:'動詞',romanization:'ju-jang-ha-da'},
+  {word:'설명하다',definition:'說明',pos:'動詞',romanization:'seol-myeong-ha-da'},
+  {word:'이해하다',definition:'理解',pos:'動詞',romanization:'i-hae-ha-da'},
+  {word:'표현하다',definition:'表現',pos:'動詞',romanization:'pyo-hyeon-ha-da'},
+  {word:'강조하다',definition:'強調',pos:'動詞',romanization:'gang-jo-ha-da'},
+  {word:'참여하다',definition:'參與',pos:'動詞',romanization:'cham-yeo-ha-da'},
+  {word:'따라서',definition:'因此、所以',pos:'連接詞',romanization:'tta-ra-seo'},
+  {word:'그러므로',definition:'因此',pos:'連接詞',romanization:'geu-reo-meu-ro'},
+  {word:'반면에',definition:'另一方面',pos:'連接詞',romanization:'ban-myeon-e'},
+  {word:'또한',definition:'另外、也',pos:'連接詞',romanization:'tto-han'},
+  {word:'게다가',definition:'而且、加上',pos:'連接詞',romanization:'ge-da-ga'},
+  {word:'그러나',definition:'但是、然而',pos:'連接詞',romanization:'geu-reo-na'},
+  {word:'비록',definition:'雖然',pos:'連接詞',romanization:'bi-rok'},
+  {word:'특히',definition:'特別、尤其',pos:'副詞',romanization:'teuk-hi'},
+  {word:'주로',definition:'主要地',pos:'副詞',romanization:'ju-ro'},
+  {word:'점점',definition:'逐漸',pos:'副詞',romanization:'jeom-jeom'},
+];
+
+let pendingImportWords = [];
+
+async function importTopikWords(level) {
+  if (!currentUser) { showToast('請先登入'); return; }
+  const words = level === 1 ? TOPIK1_WORDS : [...TOPIK1_WORDS, ...TOPIK2_WORDS];
+  const btnId = `topik${level}-btn`;
+  const btn = document.getElementById(btnId);
+  const statusEl = document.getElementById('topik-status');
+  btn.disabled = true;
+  btn.textContent = '匯入中...';
+  statusEl.textContent = `正在匯入 ${words.length} 個單字...`;
+
+  try {
+    const { data: { session } } = await _supa.auth.getSession();
+    const res = await fetch('/api/import-vocab', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ words: words.map(w => ({...w, source: `TOPIK ${level}級單字表`})), userId: session.user.id })
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error);
+    statusEl.textContent = `✅ 成功匯入 ${result.imported} 個單字！`;
+    statusEl.style.color = 'var(--accent-teal)';
+    btn.textContent = level === 1 ? '匯入 TOPIK 1級（800字）' : '匯入 TOPIK 2級（1500字）';
+    btn.disabled = false;
+    await loadVocabFromDB();
+    showToast(`🎉 TOPIK ${level}級單字表匯入完成！`);
+  } catch (err) {
+    statusEl.textContent = '❌ 匯入失敗：' + err.message;
+    statusEl.style.color = 'var(--accent-red)';
+    btn.disabled = false;
+    btn.textContent = level === 1 ? '匯入 TOPIK 1級（800字）' : '匯入 TOPIK 2級（1500字）';
+  }
+}
+
+function handleCsvImport(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const text = e.target.result;
+    document.getElementById('csv-paste-area').value = text;
+    document.getElementById('csv-paste-area').style.display = 'block';
+    document.getElementById('csv-preview-btn').style.display = 'inline-block';
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function previewCsvImport() {
+  const raw = document.getElementById('csv-paste-area').value.trim();
+  if (!raw) { showToast('請先輸入或上傳 CSV 內容'); return; }
+  const lines = raw.split('\n').filter(l => l.trim());
+  pendingImportWords = lines.map(line => {
+    const parts = line.split(',').map(p => p.trim());
+    return {
+      word: parts[0] || '',
+      definition: parts[1] || '',
+      pos: parts[2] || '韓文',
+      romanization: parts[3] || '',
+      source: 'CSV 匯入'
+    };
+  }).filter(w => w.word.match(/[가-힣]/));
+
+  if (pendingImportWords.length === 0) { showToast('沒有找到有效的韓文單字'); return; }
+
+  document.getElementById('preview-count').textContent = pendingImportWords.length;
+  document.getElementById('vocab-preview-area').style.display = 'block';
+  document.getElementById('vocab-preview-table').innerHTML = `
+    <table style="width:100%;font-size:13px;border-collapse:collapse">
+      <thead><tr style="background:var(--parchment)">
+        <th style="padding:8px 12px;text-align:left;font-weight:500">韓文</th>
+        <th style="padding:8px 12px;text-align:left;font-weight:500">意思</th>
+        <th style="padding:8px 12px;text-align:left;font-weight:500">詞性</th>
+        <th style="padding:8px 12px;text-align:left;font-weight:500">羅馬拼音</th>
+      </tr></thead>
+      <tbody>${pendingImportWords.slice(0,20).map((w,i) => `
+        <tr style="border-top:1px solid var(--border-soft)">
+          <td style="padding:8px 12px;font-family:'Noto Serif KR',serif;font-size:16px">${w.word}</td>
+          <td style="padding:8px 12px;color:var(--ink-soft)">${w.definition}</td>
+          <td style="padding:8px 12px;color:var(--ink-muted)">${w.pos}</td>
+          <td style="padding:8px 12px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-muted)">${w.romanization}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+    ${pendingImportWords.length > 20 ? `<div style="padding:10px 12px;font-size:12px;color:var(--ink-muted)">...還有 ${pendingImportWords.length - 20} 個單字</div>` : ''}
+  `;
+}
+
+async function confirmImport() {
+  if (!pendingImportWords.length) return;
+  if (!currentUser) { showToast('請先登入'); return; }
+  const btn = document.querySelector('#vocab-preview-area button.btn-primary');
+  btn.textContent = '匯入中...'; btn.disabled = true;
+  try {
+    const { data: { session } } = await _supa.auth.getSession();
+    const res = await fetch('/api/import-vocab', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ words: pendingImportWords, userId: session.user.id })
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error);
+    document.getElementById('vocab-preview-area').style.display = 'none';
+    document.getElementById('csv-paste-area').value = '';
+    document.getElementById('csv-status').textContent = `✅ 成功匯入 ${result.imported} 個單字！`;
+    document.getElementById('csv-status').style.color = 'var(--accent-teal)';
+    pendingImportWords = [];
+    await loadVocabFromDB();
+    showToast(`🎉 成功匯入 ${result.imported} 個單字！`);
+  } catch (err) {
+    showToast('匯入失敗：' + err.message);
+    btn.textContent = '全部匯入'; btn.disabled = false;
+  }
 }
 
 // ── UPLOAD TAB SWITCH ──
