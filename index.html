@@ -25,7 +25,7 @@ async function initAuth() {
   if (session) {
     currentUser = session.user;
     showApp();
-    loadVocabFromDB();
+    loadAllData();
     updateUserUI();
   } else {
     showLoginScreen();
@@ -35,7 +35,7 @@ async function initAuth() {
     if (session) {
       currentUser = session.user;
       showApp();
-      loadVocabFromDB();
+      loadAllData();
       updateUserUI();
     } else {
       currentUser = null;
@@ -89,6 +89,11 @@ async function loadVocabFromDB() {
   dbVocab = data || [];
   renderVocabTable();
   updateDashboardStats();
+}
+
+// ── 初始載入（登入後同時載入單字庫和教材列表）──
+async function loadAllData() {
+  await loadVocabFromDB();
   await loadTranscriptList();
 }
 
